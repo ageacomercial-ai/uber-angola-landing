@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uber Angola - Plataforma de Mobilidade Urbana</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #00B140; --primary-dark: #009933; --black: #0A0A0A; --dark-gray: #1A1A1A; --medium-gray: #2A2A2A; --light-gray: #888888; --white: #FFFFFF; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background-color: var(--black); color: var(--white); min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 1px solid var(--medium-gray); margin-bottom: 40px; }
+        .logo { font-size: 28px; font-weight: 700; color: var(--primary); }
+        .nav-links { display: flex; gap: 24px; }
+        .nav-links a { color: var(--light-gray); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--primary); }
+        .hero { text-align: center; padding: 60px 0; }
+        .hero h1 { font-size: 48px; font-weight: 700; margin-bottom: 16px; background: linear-gradient(135deg, var(--primary), #00D95B); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero p { font-size: 18px; color: var(--light-gray); max-width: 600px; margin: 0 auto 32px; }
+        .cta-buttons { display: flex; gap: 16px; justify-content: center; }
+        .btn { padding: 14px 32px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; border: none; transition: transform 0.2s, box-shadow 0.2s; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 177, 64, 0.3); }
+        .btn-primary { background-color: var(--primary); color: var(--white); }
+        .btn-outline { background-color: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .features { padding: 60px 0; }
+        .features h2 { text-align: center; font-size: 32px; margin-bottom: 48px; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+        .feature-card { background-color: var(--dark-gray); border: 1px solid var(--medium-gray); border-radius: 16px; padding: 32px; text-align: center; transition: transform 0.2s, border-color 0.2s; }
+        .feature-card:hover { transform: translateY(-4px); border-color: var(--primary); }
+        .feature-icon { font-size: 48px; margin-bottom: 16px; }
+        .feature-card h3 { font-size: 20px; margin-bottom: 8px; }
+        .feature-card p { color: var(--light-gray); font-size: 14px; line-height: 1.6; }
+        .stats { background-color: var(--dark-gray); border-radius: 16px; padding: 48px; margin: 60px 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; text-align: center; }
+        .stat-item h3 { font-size: 36px; color: var(--primary); margin-bottom: 8px; }
+        .stat-item p { color: var(--light-gray); font-size: 14px; }
+        .pricing { padding: 60px 0; }
+        .pricing h2 { text-align: center; font-size: 32px; margin-bottom: 48px; }
+        .pricing-card { background-color: var(--dark-gray); border: 2px solid var(--primary); border-radius: 16px; padding: 48px; max-width: 500px; margin: 0 auto; text-align: center; }
+        .pricing-card h3 { font-size: 24px; margin-bottom: 16px; }
+        .price { font-size: 48px; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+        .price span { font-size: 16px; color: var(--light-gray); }
+        .pricing-features { text-align: left; margin: 32px 0; }
+        .pricing-features li { list-style: none; padding: 8px 0; color: var(--light-gray); display: flex; align-items: center; gap: 12px; }
+        .pricing-features li::before { content: "✓"; color: var(--primary); font-weight: 700; }
+        .app-preview { padding: 60px 0; text-align: center; }
+        .app-preview h2 { font-size: 32px; margin-bottom: 24px; }
+        .phone-mockup { width: 300px; height: 600px; background: linear-gradient(180deg, var(--dark-gray), var(--black)); border-radius: 40px; border: 4px solid var(--medium-gray); margin: 0 auto; overflow: hidden; position: relative; }
+        .phone-screen { width: 100%; height: 100%; background-color: var(--black); display: flex; flex-direction: column; padding: 20px; }
+        .phone-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .phone-greeting { font-size: 18px; font-weight: 600; }
+        .phone-search { background-color: var(--dark-gray); border: 1px solid var(--medium-gray); border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+        .phone-search p { color: var(--light-gray); font-size: 14px; }
+        .phone-map { flex: 1; background: linear-gradient(135deg, #1a3a2a, #0a1a1a); border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+        .phone-map::before { content: ""; position: absolute; width: 200%; height: 200%; background: repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(0, 177, 64, 0.1) 20px, rgba(0, 177, 64, 0.1) 21px); transform: rotate(45deg); }
+        .map-pin { width: 40px; height: 40px; background-color: var(--primary); border-radius: 50%; border: 4px solid var(--white); z-index: 1; box-shadow: 0 4px 12px rgba(0, 177, 64, 0.4); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .footer { border-top: 1px solid var(--medium-gray); padding: 40px 0; margin-top: 60px; text-align: center; }
+        .footer p { color: var(--light-gray); font-size: 14px; }
+        .footer-links { display: flex; justify-content: center; gap: 24px; margin-top: 16px; }
+        .footer-links a { color: var(--light-gray); text-decoration: none; font-size: 13px; }
+        .footer-links a:hover { color: var(--primary); }
+        @media (max-width: 768px) { .hero h1 { font-size: 32px; } .stats { grid-template-columns: repeat(2, 1fr); } .cta-buttons { flex-direction: column; align-items: center; } .nav-links { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">Uber Angola</div>
+            <nav class="nav-links">
+                <a href="#features">Funcionalidades</a>
+                <a href="#pricing">Preços</a>
+                <a href="#app">App</a>
+                <a href="#contact">Contacto</a>
+            </nav>
+        </header>
+        
+        <section class="hero">
+            <h1>Mobilidade Urbana em Angola</h1>
+            <p>Conectamos passageiros a motoristas autónomos de forma simples, segura e económica. Paga em dinheiro ou Multicaixa Express.</p>
+            <div class="cta-buttons">
+                <button class="btn btn-primary" onclick="alert('App em desenvolvimento! Em breve disponível na Google Play.')">Descarregar App</button>
+                <button class="btn btn-outline" onclick="document.getElementById('pricing').scrollIntoView({behavior: 'smooth'})">Ser Motorista</button>
+            </div>
+        </section>
+        
+        <section class="features" id="features">
+            <h2>Por que escolher o Uber Angola?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Comissão Justa</h3>
+                    <p>Apenas 15% de comissão. Os motoristas ganham mais do que noutras plataformas.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💳</div>
+                    <h3>Pagamento Flexível</h3>
+                    <p>Paga em dinheiro ou Multicaixa Express. Tu escolhes como pagar.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🚗</div>
+                    <h3>Motoristas Verificados</h3>
+                    <p>Todos os nossos motoristas são verificados e avaliados pela comunidade.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📍</div>
+                    <h3>Tempo Real</h3>
+                    <p>Acompanha o teu motorista em tempo real no mapa.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⭐</div>
+                    <h3>Avaliação</h3>
+                    <p>Sistema de avaliação bidirecional para garantir qualidade.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Segurança</h3>
+                    <p>Botão de emergência e partilha de viagem com familiares.</p>
+                </div>
+            </div>
+        </section>
+        
+        <div class="stats">
+            <div class="stat-item"><h3>500+</h3><p>Motoristas Registados</p></div>
+            <div class="stat-item"><h3>10K+</h3><p>Corridas Realizadas</p></div>
+            <div class="stat-item"><h3>4.8</h3><p>Avaliação Média</p></div>
+            <div class="stat-item"><h3>5min</h3><p>Tempo Médio Espera</p></div>
+        </div>
+        
+        <section class="pricing" id="pricing">
+            <h2>Para Motoristas</h2>
+            <div class="pricing-card">
+                <h3>Plano Motorista</h3>
+                <div class="price">15% <span>comissão</span></div>
+                <ul class="pricing-features">
+                    <li>Primeiro mês grátis</li>
+                    <li>Sem mensalidade</li>
+                    <li>Pagamento direto ao motorista</li>
+                    <li>Suporte em português</li>
+                    <li>Mapa em tempo real</li>
+                    <li>Sistema de avaliação</li>
+                </ul>
+                <button class="btn btn-primary" style="width: 100%;" onclick="alert('Registo de motorista em breve!')">Registar como Motorista</button>
+            </div>
+        </section>
+        
+        <section class="app-preview" id="app">
+            <h2>O Teu App de Mobilidade</h2>
+            <div class="phone-mockup">
+                <div class="phone-screen">
+                    <div class="phone-header">
+                        <span class="phone-greeting">Olá, Maria</span>
+                        <span>👤</span>
+                    </div>
+                    <div class="phone-search"><p>📍 Para onde vai?</p></div>
+                    <div class="phone-map"><div class="map-pin"></div></div>
+                </div>
+            </div>
+        </section>
+        
+        <footer class="footer" id="contact">
+            <p>&copy; 2026 Uber Angola. Todos os direitos reservados.</p>
+            <div class="footer-links">
+                <a href="#">Termos de Serviço</a>
+                <a href="#">Política de Privacidade</a>
+                <a href="#">Contacto</a>
+                <a href="mailto:info@uberangola.ao">info@uberangola.ao</a>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
