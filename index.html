@@ -2,171 +2,744 @@
 <html lang="pt-AO">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uber Angola - Plataforma de Mobilidade Urbana</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Uber Angola</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root { --primary: #00B140; --primary-dark: #009933; --black: #0A0A0A; --dark-gray: #1A1A1A; --medium-gray: #2A2A2A; --light-gray: #888888; --white: #FFFFFF; }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background-color: var(--black); color: var(--white); min-height: 100vh; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 1px solid var(--medium-gray); margin-bottom: 40px; }
-        .logo { font-size: 28px; font-weight: 700; color: var(--primary); }
-        .nav-links { display: flex; gap: 24px; }
-        .nav-links a { color: var(--light-gray); text-decoration: none; font-size: 14px; transition: color 0.2s; }
-        .nav-links a:hover { color: var(--primary); }
-        .hero { text-align: center; padding: 60px 0; }
-        .hero h1 { font-size: 48px; font-weight: 700; margin-bottom: 16px; background: linear-gradient(135deg, var(--primary), #00D95B); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .hero p { font-size: 18px; color: var(--light-gray); max-width: 600px; margin: 0 auto 32px; }
-        .cta-buttons { display: flex; gap: 16px; justify-content: center; }
-        .btn { padding: 14px 32px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; border: none; transition: transform 0.2s, box-shadow 0.2s; }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 177, 64, 0.3); }
-        .btn-primary { background-color: var(--primary); color: var(--white); }
-        .btn-outline { background-color: transparent; border: 2px solid var(--primary); color: var(--primary); }
-        .features { padding: 60px 0; }
-        .features h2 { text-align: center; font-size: 32px; margin-bottom: 48px; }
-        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
-        .feature-card { background-color: var(--dark-gray); border: 1px solid var(--medium-gray); border-radius: 16px; padding: 32px; text-align: center; transition: transform 0.2s, border-color 0.2s; }
-        .feature-card:hover { transform: translateY(-4px); border-color: var(--primary); }
-        .feature-icon { font-size: 48px; margin-bottom: 16px; }
-        .feature-card h3 { font-size: 20px; margin-bottom: 8px; }
-        .feature-card p { color: var(--light-gray); font-size: 14px; line-height: 1.6; }
-        .stats { background-color: var(--dark-gray); border-radius: 16px; padding: 48px; margin: 60px 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; text-align: center; }
-        .stat-item h3 { font-size: 36px; color: var(--primary); margin-bottom: 8px; }
-        .stat-item p { color: var(--light-gray); font-size: 14px; }
-        .pricing { padding: 60px 0; }
-        .pricing h2 { text-align: center; font-size: 32px; margin-bottom: 48px; }
-        .pricing-card { background-color: var(--dark-gray); border: 2px solid var(--primary); border-radius: 16px; padding: 48px; max-width: 500px; margin: 0 auto; text-align: center; }
-        .pricing-card h3 { font-size: 24px; margin-bottom: 16px; }
-        .price { font-size: 48px; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
-        .price span { font-size: 16px; color: var(--light-gray); }
-        .pricing-features { text-align: left; margin: 32px 0; }
-        .pricing-features li { list-style: none; padding: 8px 0; color: var(--light-gray); display: flex; align-items: center; gap: 12px; }
-        .pricing-features li::before { content: "✓"; color: var(--primary); font-weight: 700; }
-        .app-preview { padding: 60px 0; text-align: center; }
-        .app-preview h2 { font-size: 32px; margin-bottom: 24px; }
-        .phone-mockup { width: 300px; height: 600px; background: linear-gradient(180deg, var(--dark-gray), var(--black)); border-radius: 40px; border: 4px solid var(--medium-gray); margin: 0 auto; overflow: hidden; position: relative; }
-        .phone-screen { width: 100%; height: 100%; background-color: var(--black); display: flex; flex-direction: column; padding: 20px; }
-        .phone-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .phone-greeting { font-size: 18px; font-weight: 600; }
-        .phone-search { background-color: var(--dark-gray); border: 1px solid var(--medium-gray); border-radius: 12px; padding: 16px; margin-bottom: 20px; }
-        .phone-search p { color: var(--light-gray); font-size: 14px; }
-        .phone-map { flex: 1; background: linear-gradient(135deg, #1a3a2a, #0a1a1a); border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
-        .phone-map::before { content: ""; position: absolute; width: 200%; height: 200%; background: repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(0, 177, 64, 0.1) 20px, rgba(0, 177, 64, 0.1) 21px); transform: rotate(45deg); }
-        .map-pin { width: 40px; height: 40px; background-color: var(--primary); border-radius: 50%; border: 4px solid var(--white); z-index: 1; box-shadow: 0 4px 12px rgba(0, 177, 64, 0.4); animation: pulse 2s infinite; }
+        :root { --primary: #00B140; --primary-dark: #009933; --black: #0A0A0A; --dark: #1A1A1A; --gray: #2A2A2A; --light: #888; --white: #FFF; --error: #FF4444; --info: #2196F3; --warning: #FFB800; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--black); color: var(--white); height: 100vh; overflow: hidden; }
+        
+        /* SCREENS */
+        .screen { display: none; width: 100%; height: 100vh; flex-direction: column; }
+        .screen.active { display: flex; }
+        
+        /* LOGIN */
+        .login-screen { justify-content: center; align-items: center; padding: 20px; }
+        .login-box { width: 100%; max-width: 400px; }
+        .logo-big { font-size: 36px; font-weight: 700; color: var(--primary); text-align: center; margin-bottom: 8px; }
+        .subtitle { color: var(--light); text-align: center; margin-bottom: 40px; }
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; font-size: 13px; color: var(--light); margin-bottom: 6px; }
+        .input-group input { width: 100%; padding: 14px 16px; background: var(--dark); border: 1px solid var(--gray); border-radius: 8px; color: var(--white); font-size: 15px; outline: none; }
+        .input-group input:focus { border-color: var(--primary); }
+        .input-group input::placeholder { color: var(--light); }
+        
+        /* BUTTONS */
+        .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: var(--primary); color: var(--white); }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-danger { background: var(--error); color: var(--white); }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .btn-small { padding: 10px 20px; width: auto; font-size: 14px; }
+        
+        /* HEADER */
+        .app-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: var(--dark); border-bottom: 1px solid var(--gray); }
+        .app-header h2 { font-size: 18px; }
+        .header-btn { background: none; border: none; color: var(--white); font-size: 20px; cursor: pointer; }
+        
+        /* MAP */
+        .map-container { flex: 1; position: relative; }
+        #map { width: 100%; height: 100%; }
+        .map-overlay { position: absolute; bottom: 20px; left: 20px; right: 20px; z-index: 1000; }
+        
+        /* CARDS */
+        .card { background: var(--dark); border: 1px solid var(--gray); border-radius: 12px; padding: 16px; }
+        .card-highlight { border-color: var(--primary); }
+        
+        /* BOTTOM SHEET */
+        .bottom-sheet { position: absolute; bottom: 0; left: 0; right: 0; background: var(--dark); border-top: 1px solid var(--gray); border-radius: 20px 20px 0 0; padding: 20px; z-index: 1000; max-height: 60vh; overflow-y: auto; }
+        .bottom-sheet h3 { font-size: 20px; margin-bottom: 16px; }
+        .sheet-handle { width: 40px; height: 4px; background: var(--gray); border-radius: 2px; margin: 0 auto 16px; }
+        
+        /* PRICE DISPLAY */
+        .price-display { text-align: center; padding: 16px; background: var(--gray); border-radius: 12px; margin: 12px 0; }
+        .price-label { font-size: 13px; color: var(--light); }
+        .price-value { font-size: 32px; font-weight: 700; color: var(--primary); }
+        .price-details { font-size: 13px; color: var(--light); }
+        
+        /* LOCATION LIST */
+        .location-list { max-height: 200px; overflow-y: auto; }
+        .location-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid var(--gray); cursor: pointer; gap: 12px; }
+        .location-item:hover { background: var(--gray); }
+        .location-icon { width: 36px; height: 36px; border-radius: 50%; background: var(--gray); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .location-info { flex: 1; }
+        .location-name { font-size: 14px; font-weight: 500; }
+        .location-addr { font-size: 12px; color: var(--light); }
+        
+        /* RIDE STATUS */
+        .ride-status { padding: 20px; text-align: center; }
+        .status-animation { font-size: 48px; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-        .footer { border-top: 1px solid var(--medium-gray); padding: 40px 0; margin-top: 60px; text-align: center; }
-        .footer p { color: var(--light-gray); font-size: 14px; }
-        .footer-links { display: flex; justify-content: center; gap: 24px; margin-top: 16px; }
-        .footer-links a { color: var(--light-gray); text-decoration: none; font-size: 13px; }
-        .footer-links a:hover { color: var(--primary); }
-        @media (max-width: 768px) { .hero h1 { font-size: 32px; } .stats { grid-template-columns: repeat(2, 1fr); } .cta-buttons { flex-direction: column; align-items: center; } .nav-links { display: none; } }
+        .status-text { font-size: 18px; margin: 16px 0; }
+        
+        /* DRIVER CARD */
+        .driver-card { display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--dark); border: 1px solid var(--gray); border-radius: 12px; margin: 12px 0; }
+        .driver-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--white); font-weight: 600; }
+        .driver-info { flex: 1; }
+        .driver-name { font-size: 16px; font-weight: 600; }
+        .driver-car { font-size: 13px; color: var(--light); }
+        .driver-rating { font-size: 13px; color: var(--warning); }
+        
+        /* TABS */
+        .tabs { display: flex; background: var(--dark); border-top: 1px solid var(--gray); }
+        .tab { flex: 1; padding: 12px; text-align: center; color: var(--light); cursor: pointer; border: none; background: none; font-size: 12px; }
+        .tab.active { color: var(--primary); }
+        .tab-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+        
+        /* DRIVER DASHBOARD */
+        .dashboard { padding: 20px; overflow-y: auto; flex: 1; }
+        .online-toggle { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--dark); border-radius: 12px; margin-bottom: 16px; }
+        .toggle-switch { width: 56px; height: 30px; background: var(--gray); border-radius: 15px; position: relative; cursor: pointer; transition: background 0.3s; }
+        .toggle-switch.active { background: var(--primary); }
+        .toggle-switch::after { content: ''; position: absolute; width: 26px; height: 26px; background: var(--white); border-radius: 50%; top: 2px; left: 2px; transition: transform 0.3s; }
+        .toggle-switch.active::after { transform: translateX(26px); }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+        .stat-card { background: var(--dark); border-radius: 12px; padding: 16px; text-align: center; }
+        .stat-value { font-size: 24px; font-weight: 700; color: var(--primary); }
+        .stat-label { font-size: 12px; color: var(--light); margin-top: 4px; }
+        
+        /* RIDE REQUEST POPUP */
+        .ride-popup { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .ride-popup.active { display: flex; }
+        .ride-popup-content { background: var(--dark); border: 2px solid var(--primary); border-radius: 16px; padding: 24px; width: 90%; max-width: 400px; }
+        .ride-popup-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .ride-popup-timer { background: var(--warning); color: var(--black); padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 14px; }
+        
+        /* EARNINGS */
+        .earnings-total { background: var(--primary); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 16px; }
+        .earnings-total .label { color: rgba(255,255,255,0.8); font-size: 14px; }
+        .earnings-total .value { font-size: 36px; font-weight: 700; margin-top: 8px; }
+        
+        /* HISTORY */
+        .history-list { padding: 16px; overflow-y: auto; flex: 1; }
+        .history-item { background: var(--dark); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+        .history-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .history-price { color: var(--primary); font-weight: 600; }
+        .history-route { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--light); }
+        .history-dot { width: 8px; height: 8px; border-radius: 50%; }
+        
+        /* PROFILE */
+        .profile-screen { padding: 20px; overflow-y: auto; flex: 1; }
+        .profile-header { text-align: center; margin-bottom: 24px; }
+        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 12px; }
+        .profile-name { font-size: 20px; font-weight: 600; }
+        .profile-phone { color: var(--light); font-size: 14px; }
+        .profile-menu { margin-top: 24px; }
+        .menu-item { display: flex; align-items: center; padding: 16px; border-bottom: 1px solid var(--gray); gap: 12px; cursor: pointer; }
+        .menu-item:hover { background: var(--dark); }
+        .menu-icon { font-size: 20px; }
+        .menu-label { flex: 1; font-size: 15px; }
+        .menu-arrow { color: var(--light); }
+        
+        /* BADGE */
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-success { background: var(--primary); }
+        .badge-warning { background: var(--warning); color: var(--black); }
+        .badge-error { background: var(--error); }
+        .badge-info { background: var(--info); }
+        
+        /* PAYMENT */
+        .payment-options { display: flex; gap: 8px; margin: 12px 0; }
+        .payment-option { flex: 1; padding: 12px; border: 2px solid var(--gray); border-radius: 8px; text-align: center; cursor: pointer; font-size: 12px; }
+        .payment-option.selected { border-color: var(--primary); background: rgba(0,177,64,0.1); }
+        .payment-icon { font-size: 24px; display: block; margin-bottom: 4px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <div class="logo">Uber Angola</div>
-            <nav class="nav-links">
-                <a href="#features">Funcionalidades</a>
-                <a href="#pricing">Preços</a>
-                <a href="#app">App</a>
-                <a href="#contact">Contacto</a>
-            </nav>
-        </header>
-        
-        <section class="hero">
-            <h1>Mobilidade Urbana em Angola</h1>
-            <p>Conectamos passageiros a motoristas autónomos de forma simples, segura e económica. Paga em dinheiro ou Multicaixa Express.</p>
-            <div class="cta-buttons">
-                <button class="btn btn-primary" onclick="alert('App em desenvolvimento! Em breve disponível na Google Play.')">Descarregar App</button>
-                <button class="btn btn-outline" onclick="document.getElementById('pricing').scrollIntoView({behavior: 'smooth'})">Ser Motorista</button>
-            </div>
-        </section>
-        
-        <section class="features" id="features">
-            <h2>Por que escolher o Uber Angola?</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">💰</div>
-                    <h3>Comissão Justa</h3>
-                    <p>Apenas 15% de comissão. Os motoristas ganham mais do que noutras plataformas.</p>
+    <!-- LOGIN SCREEN -->
+    <div class="screen active" id="screen-login">
+        <div class="login-screen">
+            <div class="login-box">
+                <div class="logo-big">Uber Angola</div>
+                <p class="subtitle">Mobilidade urbana em Angola</p>
+                
+                <div id="login-step1">
+                    <div class="input-group">
+                        <label>Número de telefone</label>
+                        <input type="tel" id="phone-input" placeholder="+244 XXX XXX XXX" maxlength="12">
+                    </div>
+                    <button class="btn btn-primary" onclick="requestOTP()">Enviar Código</button>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">💳</div>
-                    <h3>Pagamento Flexível</h3>
-                    <p>Paga em dinheiro ou Multicaixa Express. Tu escolhes como pagar.</p>
+                
+                <div id="login-step2" style="display:none">
+                    <div class="input-group">
+                        <label>Código de verificação</label>
+                        <input type="text" id="otp-input" placeholder="0000" maxlength="4">
+                    </div>
+                    <button class="btn btn-primary" onclick="verifyOTP()">Verificar</button>
+                    <button class="btn btn-outline" style="margin-top:12px" onclick="requestOTP()">Reenviar Código</button>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🚗</div>
-                    <h3>Motoristas Verificados</h3>
-                    <p>Todos os nossos motoristas são verificados e avaliados pela comunidade.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📍</div>
-                    <h3>Tempo Real</h3>
-                    <p>Acompanha o teu motorista em tempo real no mapa.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">⭐</div>
-                    <h3>Avaliação</h3>
-                    <p>Sistema de avaliação bidirecional para garantir qualidade.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔒</div>
-                    <h3>Segurança</h3>
-                    <p>Botão de emergência e partilha de viagem com familiares.</p>
+                
+                <div id="login-step3" style="display:none">
+                    <div class="input-group">
+                        <label>Nome completo</label>
+                        <input type="text" id="name-input" placeholder="O seu nome">
+                    </div>
+                    <p style="margin-bottom:12px;font-size:14px;color:var(--light)">Tipo de conta:</p>
+                    <div style="display:flex;gap:12px;margin-bottom:16px">
+                        <button class="btn btn-outline" id="role-passenger" onclick="selectRole('passenger')" style="flex:1">🚗 Passageiro</button>
+                        <button class="btn btn-outline" id="role-driver" onclick="selectRole('driver')" style="flex:1">🚖 Motorista</button>
+                    </div>
+                    <button class="btn btn-primary" onclick="register()">Criar Conta</button>
                 </div>
             </div>
-        </section>
-        
-        <div class="stats">
-            <div class="stat-item"><h3>500+</h3><p>Motoristas Registados</p></div>
-            <div class="stat-item"><h3>10K+</h3><p>Corridas Realizadas</p></div>
-            <div class="stat-item"><h3>4.8</h3><p>Avaliação Média</p></div>
-            <div class="stat-item"><h3>5min</h3><p>Tempo Médio Espera</p></div>
+        </div>
+    </div>
+
+    <!-- PASSENGER SCREEN -->
+    <div class="screen" id="screen-passenger">
+        <div class="app-header">
+            <h2>🚗 Uber Angola</h2>
+            <button class="header-btn" onclick="showProfile()">👤</button>
+        </div>
+        <div class="map-container">
+            <div id="map-passenger"></div>
+            <div class="map-overlay">
+                <div class="bottom-sheet" id="passenger-sheet">
+                    <div class="sheet-handle"></div>
+                    <div id="passenger-default">
+                        <h3 id="greeting">Olá, Passageiro</h3>
+                        <button class="btn btn-primary" style="margin-top:12px" onclick="showSearch()">📍 Para onde vai?</button>
+                    </div>
+                    <div id="passenger-search" style="display:none">
+                        <h3>Buscar Destino</h3>
+                        <input type="text" id="search-input" placeholder="Pesquisar bairro..." style="width:100%;padding:12px;background:var(--gray);border:1px solid var(--gray);border-radius:8px;color:var(--white);margin:12px 0;font-size:14px" oninput="filterLocations()">
+                        <div class="location-list" id="location-list"></div>
+                        <button class="btn btn-outline" style="margin-top:12px" onclick="hideSearch()">Cancelar</button>
+                    </div>
+                    <div id="passenger-confirm" style="display:none">
+                        <h3>Confirmar Corrida</h3>
+                        <div style="margin:12px 0">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                                <span class="history-dot" style="background:var(--primary)"></span>
+                                <span id="confirm-from">Origem</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <span class="history-dot" style="background:var(--error)"></span>
+                                <span id="confirm-to">Destino</span>
+                            </div>
+                        </div>
+                        <div class="price-display">
+                            <div class="price-label">Preço estimado</div>
+                            <div class="price-value" id="confirm-price">0 Kz</div>
+                            <div class="price-details" id="confirm-details">0 km · 0 min</div>
+                        </div>
+                        <p style="font-size:12px;color:var(--light);text-align:center;margin:8px 0">Pagamento: Dinheiro ou Multicaixa Express ao motorista</p>
+                        <button class="btn btn-primary" onclick="requestRide()">Pedir Corrida</button>
+                        <button class="btn btn-outline" style="margin-top:8px" onclick="hideConfirm()">Cancelar</button>
+                    </div>
+                    <div id="passenger-waiting" style="display:none">
+                        <div class="ride-status">
+                            <div class="status-animation">🔍</div>
+                            <div class="status-text">Procurando motorista...</div>
+                            <button class="btn btn-danger btn-small" style="margin-top:16px" onclick="cancelRide()">Cancelar</button>
+                        </div>
+                    </div>
+                    <div id="passenger-driver" style="display:none">
+                        <h3>Motorista a caminho</h3>
+                        <div class="driver-card">
+                            <div class="driver-avatar" id="driver-avatar">C</div>
+                            <div class="driver-info">
+                                <div class="driver-name" id="driver-name">Carlos Silva</div>
+                                <div class="driver-car" id="driver-car">Toyota Corolla · LD-1234-AB</div>
+                                <div class="driver-rating">⭐ 4.8</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:8px">
+                            <button class="btn btn-outline" style="flex:1" onclick="alert('A ligar...')">📞 Ligar</button>
+                            <button class="btn btn-primary" style="flex:1" onclick="completeRide()">✅ Finalizar</button>
+                        </div>
+                    </div>
+                    <div id="passenger-complete" style="display:none">
+                        <div class="ride-status">
+                            <div class="status-animation">🎉</div>
+                            <div class="status-text">Corrida concluída!</div>
+                            <div class="price-display" style="margin:16px 0">
+                                <div class="price-label">Total pago</div>
+                                <div class="price-value" id="complete-price">0 Kz</div>
+                            </div>
+                            <p style="font-size:13px;color:var(--light);margin-bottom:16px">Pagamento em dinheiro ao motorista</p>
+                            <button class="btn btn-primary" onclick="resetPassenger()">Pedir Nova Corrida</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="tab active" onclick="showPassengerTab('home')"><span class="tab-icon">🏠</span>Início</button>
+            <button class="tab" onclick="showPassengerTab('history')"><span class="tab-icon">📋</span>Histórico</button>
+            <button class="tab" onclick="showPassengerTab('profile')"><span class="tab-icon">👤</span>Perfil</button>
+        </div>
+    </div>
+
+    <!-- DRIVER SCREEN -->
+    <div class="screen" id="screen-driver">
+        <div class="app-header">
+            <h2>🚖 Uber Angola</h2>
+            <button class="header-btn" onclick="showDriverProfile()">👤</button>
+        </div>
+        <div class="dashboard" id="driver-dashboard">
+            <div class="online-toggle">
+                <div>
+                    <div style="font-weight:600" id="driver-status-text">Offline</div>
+                    <div style="font-size:13px;color:var(--light)">Status do motorista</div>
+                </div>
+                <div class="toggle-switch" id="online-toggle" onclick="toggleOnline()"></div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="driver-earnings">0</div>
+                    <div class="stat-label">Ganhos Hoje (Kz)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="driver-rides">0</div>
+                    <div class="stat-label">Corridas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">4.8</div>
+                    <div class="stat-label">Avaliação</div>
+                </div>
+            </div>
+            
+            <div class="card" id="driver-waiting" style="display:none">
+                <p style="color:var(--light);text-align:center">📡 Aguardando pedidos...</p>
+            </div>
+            
+            <div class="card card-highlight" id="driver-request" style="display:none">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                    <h3>Novo Pedido</h3>
+                    <span class="badge badge-warning" id="request-timer">15s</span>
+                </div>
+                <div style="margin-bottom:12px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <span class="history-dot" style="background:var(--primary)"></span>
+                        <span id="request-from">Origem</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <span class="history-dot" style="background:var(--error)"></span>
+                        <span id="request-to">Destino</span>
+                    </div>
+                </div>
+                <div style="text-align:center;margin-bottom:12px">
+                    <div style="font-size:13px;color:var(--light)">Ganho:</div>
+                    <div style="font-size:28px;font-weight:700;color:var(--primary)" id="request-earning">0 Kz</div>
+                </div>
+                <div style="display:flex;gap:12px">
+                    <button class="btn btn-danger" style="flex:1" onclick="declineRide()">Rejeitar</button>
+                    <button class="btn btn-primary" style="flex:1" onclick="acceptRide()">Aceitar</button>
+                </div>
+            </div>
+            
+            <div class="card" id="driver-active" style="display:none">
+                <h3 style="margin-bottom:12px">Corrida Ativa</h3>
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+                    <div class="driver-avatar" style="width:40px;height:40px;font-size:16px">M</div>
+                    <div>
+                        <div style="font-weight:500">Maria Silva</div>
+                        <div style="font-size:13px;color:var(--light)">⭐ 4.8</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary" style="flex:1" onclick="completeDriverRide()">Finalizar Viagem</button>
+                    <button class="btn btn-danger" style="flex:1" onclick="cancelDriverRide()">Cancelar</button>
+                </div>
+            </div>
         </div>
         
-        <section class="pricing" id="pricing">
-            <h2>Para Motoristas</h2>
-            <div class="pricing-card">
-                <h3>Plano Motorista</h3>
-                <div class="price">15% <span>comissão</span></div>
-                <ul class="pricing-features">
-                    <li>Primeiro mês grátis</li>
-                    <li>Sem mensalidade</li>
-                    <li>Pagamento direto ao motorista</li>
-                    <li>Suporte em português</li>
-                    <li>Mapa em tempo real</li>
-                    <li>Sistema de avaliação</li>
-                </ul>
-                <button class="btn btn-primary" style="width: 100%;" onclick="alert('Registo de motorista em breve!')">Registar como Motorista</button>
+        <div class="tabs">
+            <button class="tab active" onclick="showDriverTab('dashboard')"><span class="tab-icon">📊</span>Dashboard</button>
+            <button class="tab" onclick="showDriverTab('earnings')"><span class="tab-icon">💰</span>Ganhos</button>
+            <button class="tab" onclick="showDriverTab('profile')"><span class="tab-icon">👤</span>Perfil</button>
+        </div>
+    </div>
+
+    <!-- RIDE REQUEST POPUP (for driver) -->
+    <div class="ride-popup" id="ride-popup">
+        <div class="ride-popup-content">
+            <div class="ride-popup-header">
+                <h3>Novo Pedido!</h3>
+                <span class="ride-popup-timer" id="popup-timer">15</span>
             </div>
-        </section>
-        
-        <section class="app-preview" id="app">
-            <h2>O Teu App de Mobilidade</h2>
-            <div class="phone-mockup">
-                <div class="phone-screen">
-                    <div class="phone-header">
-                        <span class="phone-greeting">Olá, Maria</span>
-                        <span>👤</span>
-                    </div>
-                    <div class="phone-search"><p>📍 Para onde vai?</p></div>
-                    <div class="phone-map"><div class="map-pin"></div></div>
+            <div style="margin-bottom:16px">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                    <span class="history-dot" style="background:var(--primary)"></span>
+                    <span id="popup-from">Ingombota</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <span class="history-dot" style="background:var(--error)"></span>
+                    <span id="popup-to">Aeroporto</span>
                 </div>
             </div>
-        </section>
-        
-        <footer class="footer" id="contact">
-            <p>&copy; 2026 Uber Angola. Todos os direitos reservados.</p>
-            <div class="footer-links">
-                <a href="#">Termos de Serviço</a>
-                <a href="#">Política de Privacidade</a>
-                <a href="#">Contacto</a>
-                <a href="mailto:info@uberangola.ao">info@uberangola.ao</a>
+            <div style="text-align:center;margin-bottom:16px">
+                <div style="font-size:13px;color:var(--light)">O seu ganho:</div>
+                <div style="font-size:32px;font-weight:700;color:var(--primary)" id="popup-earning">2,516 Kz</div>
             </div>
-        </footer>
+            <div style="display:flex;gap:12px">
+                <button class="btn btn-danger" style="flex:1" onclick="declineFromPopup()">Rejeitar</button>
+                <button class="btn btn-primary" style="flex:1" onclick="acceptFromPopup()">Aceitar</button>
+            </div>
+        </div>
     </div>
+
+    <script>
+        // ========== DATA ==========
+        const LUANDA = { lat: -8.8399, lng: 13.2894 };
+        const LOCATIONS = {
+            'Aeroporto 4 de Fevereiro': { lat: -8.8734, lng: 13.2572 },
+            'Kinaxixi': { lat: -8.8167, lng: 13.2333 },
+            'Ingombota': { lat: -8.8333, lng: 13.2500 },
+            'Maianga': { lat: -8.8333, lng: 13.2833 },
+            'Samba': { lat: -8.8500, lng: 13.2667 },
+            'Ilha de Luanda': { lat: -8.7833, lng: 13.2667 },
+            'Marginal': { lat: -8.8167, lng: 13.2667 },
+            'Miramar': { lat: -8.8000, lng: 13.2000 },
+            'Kilamba': { lat: -8.9333, lng: 13.3000 },
+            'Talatona': { lat: -8.9000, lng: 13.2000 },
+        };
+        const DRIVERS = [
+            { name: 'Carlos Silva', car: 'Toyota Corolla', plate: 'LD-1234-AB', rating: 4.8, lat: -8.835, lng: 13.260 },
+            { name: 'João Santos', car: 'Hyundai Accent', plate: 'LD-5678-CD', rating: 4.6, lat: -8.825, lng: 13.245 },
+            { name: 'Manuel Ferreira', car: 'Kia Picanto', plate: 'LD-9012-EF', rating: 4.9, lat: -8.845, lng: 13.270 },
+            { name: 'António Costa', car: 'Toyota Prado', plate: 'LD-3456-GH', rating: 4.7, lat: -8.820, lng: 13.280 },
+            { name: 'Pedro Neto', car: 'Nissan Sentra', plate: 'LD-7890-IJ', rating: 4.5, lat: -8.850, lng: 13.250 },
+        ];
+        const PRICING = { base: 500, perKm: 200, perMin: 50, min: 300, commission: 0.15 };
+
+        // ========== STATE ==========
+        let state = {
+            user: null,
+            role: 'passenger',
+            selectedRole: 'passenger',
+            passengerLocation: { ...LUANDA },
+            pickupCoords: null,
+            dropoffCoords: null,
+            currentRide: null,
+            isOnline: false,
+            rideHistory: [],
+            driverEarnings: 0,
+            driverRides: 0,
+        };
+
+        let mapPassenger = null;
+        let driverMarkers = [];
+        let currentRideInterval = null;
+
+        // ========== AUTH ==========
+        function requestOTP() {
+            const phone = document.getElementById('phone-input').value;
+            if (phone.length < 9) { alert('Número inválido'); return; }
+            document.getElementById('login-step1').style.display = 'none';
+            document.getElementById('login-step2').style.display = 'block';
+            alert('Código OTP enviado para ' + phone + '\n\n(Demo: use 1234)');
+        }
+
+        function verifyOTP() {
+            const otp = document.getElementById('otp-input').value;
+            if (otp !== '1234') { alert('Código inválido (use 1234)'); return; }
+            document.getElementById('login-step2').style.display = 'none';
+            document.getElementById('login-step3').style.display = 'block';
+        }
+
+        function selectRole(role) {
+            state.selectedRole = role;
+            document.getElementById('role-passenger').style.background = role === 'passenger' ? 'var(--primary)' : 'transparent';
+            document.getElementById('role-passenger').style.color = role === 'passenger' ? 'var(--white)' : 'var(--primary)';
+            document.getElementById('role-driver').style.background = role === 'driver' ? 'var(--primary)' : 'transparent';
+            document.getElementById('role-driver').style.color = role === 'driver' ? 'var(--white)' : 'var(--primary)';
+        }
+
+        function register() {
+            const name = document.getElementById('name-input').value;
+            if (!name) { alert('Insira o seu nome'); return; }
+            state.user = { name, phone: document.getElementById('phone-input').value };
+            state.role = state.selectedRole;
+            
+            if (state.role === 'passenger') {
+                showScreen('screen-passenger');
+                initPassengerMap();
+                document.getElementById('greeting').textContent = 'Olá, ' + name.split(' ')[0];
+            } else {
+                showScreen('screen-driver');
+                initDriverMap();
+            }
+        }
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        // ========== MAPS ==========
+        function initPassengerMap() {
+            if (mapPassenger) return;
+            mapPassenger = L.map('map-passenger').setView([LUANDA.lat, LUANDA.lng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapPassenger);
+            
+            // Add driver markers
+            DRIVERS.forEach(d => {
+                const marker = L.circleMarker([d.lat, d.lng], { radius: 8, color: '#fff', fillColor: '#00B140', fillOpacity: 1, weight: 2 })
+                    .addTo(mapPassenger)
+                    .bindPopup('<b>' + d.name + '</b><br>' + d.car + '<br>⭐ ' + d.rating);
+                driverMarkers.push(marker);
+            });
+        }
+
+        function initDriverMap() {
+            // Driver doesn't need a map in this demo
+        }
+
+        // ========== PASSENGER ==========
+        function showSearch() {
+            document.getElementById('passenger-default').style.display = 'none';
+            document.getElementById('passenger-search').style.display = 'block';
+            renderLocations(Object.keys(LOCATIONS));
+        }
+
+        function hideSearch() {
+            document.getElementById('passenger-search').style.display = 'none';
+            document.getElementById('passenger-default').style.display = 'block';
+        }
+
+        function filterLocations() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = Object.keys(LOCATIONS).filter(n => n.toLowerCase().includes(query));
+            renderLocations(filtered);
+        }
+
+        function renderLocations(locations) {
+            const list = document.getElementById('location-list');
+            list.innerHTML = locations.map(name => `
+                <div class="location-item" onclick="selectLocation('${name}')">
+                    <div class="location-icon">📍</div>
+                    <div class="location-info">
+                        <div class="location-name">${name}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectLocation(name) {
+            const coords = LOCATIONS[name];
+            state.dropoffCoords = coords;
+            state.pickupCoords = { ...state.passengerLocation };
+            
+            const distance = haversine(state.pickupCoords, coords);
+            const duration = Math.ceil(distance * 2);
+            const price = Math.max(PRICING.base + (distance * PRICING.perKm) + (duration * PRICING.perMin), PRICING.min);
+            
+            document.getElementById('confirm-from').textContent = 'Localização atual';
+            document.getElementById('confirm-to').textContent = name;
+            document.getElementById('confirm-price').textContent = formatPrice(price);
+            document.getElementById('confirm-details').textContent = distance.toFixed(1) + ' km · ' + duration + ' min';
+            
+            document.getElementById('passenger-search').style.display = 'none';
+            document.getElementById('passenger-confirm').style.display = 'block';
+            
+            state.currentPrice = price;
+        }
+
+        function hideConfirm() {
+            document.getElementById('passenger-confirm').style.display = 'none';
+            document.getElementById('passenger-default').style.display = 'block';
+        }
+
+        function requestRide() {
+            document.getElementById('passenger-confirm').style.display = 'none';
+            document.getElementById('passenger-waiting').style.display = 'block';
+            
+            // Simulate driver found after 3 seconds
+            setTimeout(() => {
+                const driver = DRIVERS[Math.floor(Math.random() * DRIVERS.length)];
+                state.currentDriver = driver;
+                document.getElementById('driver-name').textContent = driver.name;
+                document.getElementById('driver-car').textContent = driver.car + ' · ' + driver.plate;
+                document.getElementById('driver-avatar').textContent = driver.name[0];
+                
+                document.getElementById('passenger-waiting').style.display = 'none';
+                document.getElementById('passenger-driver').style.display = 'block';
+            }, 3000);
+        }
+
+        function completeRide() {
+            document.getElementById('complete-price').textContent = formatPrice(state.currentPrice);
+            document.getElementById('passenger-driver').style.display = 'none';
+            document.getElementById('passenger-complete').style.display = 'block';
+            
+            // Add to history
+            state.rideHistory.unshift({
+                from: 'Localização atual',
+                to: document.getElementById('confirm-to').textContent,
+                price: state.currentPrice,
+                driver: state.currentDriver?.name || 'Motorista',
+                time: new Date().toLocaleTimeString('pt-AO'),
+            });
+        }
+
+        function cancelRide() {
+            document.getElementById('passenger-waiting').style.display = 'none';
+            document.getElementById('passenger-default').style.display = 'block';
+        }
+
+        function resetPassenger() {
+            document.getElementById('passenger-complete').style.display = 'none';
+            document.getElementById('passenger-default').style.display = 'block';
+            state.currentPrice = 0;
+            state.currentDriver = null;
+        }
+
+        // ========== DRIVER ==========
+        function toggleOnline() {
+            state.isOnline = !state.isOnline;
+            const toggle = document.getElementById('online-toggle');
+            const text = document.getElementById('driver-status-text');
+            const waiting = document.getElementById('driver-waiting');
+            
+            toggle.classList.toggle('active', state.isOnline);
+            text.textContent = state.isOnline ? 'Online' : 'Offline';
+            text.style.color = state.isOnline ? 'var(--primary)' : 'var(--white)';
+            waiting.style.display = state.isOnline ? 'block' : 'none';
+            
+            if (state.isOnline) {
+                // Simulate incoming ride request
+                setTimeout(() => {
+                    if (state.isOnline && !state.currentRide) {
+                        showRideRequest();
+                    }
+                }, 4000);
+            }
+        }
+
+        function showRideRequest() {
+            const locations = Object.keys(LOCATIONS);
+            const from = locations[Math.floor(Math.random() * locations.length)];
+            const to = locations[Math.floor(Math.random() * locations.length)];
+            const distance = haversine(LOCATIONS[from], LOCATIONS[to]);
+            const earning = Math.floor(Math.max(PRICING.base + (distance * PRICING.perKm) + (Math.ceil(distance * 2) * PRICING.perMin), PRICING.min) * (1 - PRICING.commission));
+            
+            state.pendingRequest = { from, to, earning };
+            
+            document.getElementById('request-from').textContent = from;
+            document.getElementById('request-to').textContent = to;
+            document.getElementById('request-earning').textContent = formatPrice(earning);
+            
+            document.getElementById('driver-request').style.display = 'block';
+            document.getElementById('driver-waiting').style.display = 'none';
+            
+            // Timer
+            let time = 15;
+            document.getElementById('request-timer').textContent = time + 's';
+            currentRideInterval = setInterval(() => {
+                time--;
+                document.getElementById('request-timer').textContent = time + 's';
+                if (time <= 0) {
+                    clearInterval(currentRideInterval);
+                    declineRide();
+                }
+            }, 1000);
+        }
+
+        function acceptRide() {
+            clearInterval(currentRideInterval);
+            state.currentRide = state.pendingRequest;
+            state.pendingRequest = null;
+            
+            document.getElementById('driver-request').style.display = 'none';
+            document.getElementById('driver-active').style.display = 'block';
+            document.getElementById('driver-waiting').style.display = 'none';
+        }
+
+        function declineRide() {
+            clearInterval(currentRideInterval);
+            state.pendingRequest = null;
+            
+            document.getElementById('driver-request').style.display = 'none';
+            document.getElementById('driver-waiting').style.display = state.isOnline ? 'block' : 'none';
+        }
+
+        function completeDriverRide() {
+            const earning = state.currentRide.earning;
+            state.driverEarnings += earning;
+            state.driverRides++;
+            state.currentRide = null;
+            
+            document.getElementById('driver-earnings').textContent = formatPrice(state.driverEarnings);
+            document.getElementById('driver-rides').textContent = state.driverRides;
+            document.getElementById('driver-active').style.display = 'none';
+            document.getElementById('driver-waiting').style.display = state.isOnline ? 'block' : 'none';
+            
+            state.rideHistory.unshift({
+                from: 'Corrida concluída',
+                to: state.currentRide?.to || 'Destino',
+                price: earning,
+                driver: 'Você',
+                time: new Date().toLocaleTimeString('pt-AO'),
+            });
+            
+            alert('Viagem concluída! Ganhou ' + formatPrice(earning));
+            
+            // Get new request if online
+            if (state.isOnline) {
+                setTimeout(() => showRideRequest(), 2000);
+            }
+        }
+
+        function cancelDriverRide() {
+            state.currentRide = null;
+            document.getElementById('driver-active').style.display = 'none';
+            document.getElementById('driver-waiting').style.display = state.isOnline ? 'block' : 'none';
+        }
+
+        // ========== TABS ==========
+        function showPassengerTab(tab) {
+            document.querySelectorAll('#screen-passenger .tab').forEach(t => t.classList.remove('active'));
+            event.target.closest('.tab').classList.add('active');
+            
+            if (tab === 'history') {
+                alert('Histórico:\n\n' + (state.rideHistory.length ? state.rideHistory.map(r => r.from + ' → ' + r.to + ': ' + formatPrice(r.price)).join('\n') : 'Nenhuma corrida ainda'));
+            } else if (tab === 'profile') {
+                showProfile();
+            }
+        }
+
+        function showDriverTab(tab) {
+            document.querySelectorAll('#screen-driver .tab').forEach(t => t.classList.remove('active'));
+            event.target.closest('.tab').classList.add('active');
+            
+            if (tab === 'earnings') {
+                alert('💰 Ganhos:\n\nHoje: ' + formatPrice(state.driverEarnings) + '\nCorridas: ' + state.driverRides + '\n\n(Todos os ganhos são 100% seus!)');
+            } else if (tab === 'profile') {
+                showDriverProfile();
+            }
+        }
+
+        function showProfile() {
+            alert('👤 Perfil:\n\nNome: ' + (state.user?.name || 'N/A') + '\nTelefone: ' + (state.user?.phone || 'N/A') + '\nTipo: ' + (state.role === 'passenger' ? 'Passageiro' : 'Motorista'));
+        }
+
+        function showDriverProfile() {
+            alert('👤 Perfil Motorista:\n\nNome: ' + (state.user?.name || 'N/A') + '\nTelefone: ' + (state.user?.phone || 'N/A') + '\nAvaliação: ⭐ 4.8\n\nGanhos totais: ' + formatPrice(state.driverEarnings));
+        }
+
+        // ========== UTILS ==========
+        function haversine(c1, c2) {
+            const R = 6371;
+            const dLat = (c2.lat - c1.lat) * Math.PI / 180;
+            const dLng = (c2.lng - c1.lng) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(c1.lat * Math.PI / 180) * Math.cos(c2.lat * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function formatPrice(p) {
+            return new Intl.NumberFormat('pt-AO').format(Math.round(p)) + ' Kz';
+        }
+
+        // Init
+        selectRole('passenger');
+    </script>
 </body>
 </html>
