@@ -3,743 +3,1551 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Uber Angola</title>
+    <title>Uber Angola - Mobilidade Urbana</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root { --primary: #00B140; --primary-dark: #009933; --black: #0A0A0A; --dark: #1A1A1A; --gray: #2A2A2A; --light: #888; --white: #FFF; --error: #FF4444; --info: #2196F3; --warning: #FFB800; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--black); color: var(--white); height: 100vh; overflow: hidden; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --primary: #00B140; --primary-dark: #009933; --primary-light: rgba(0,177,64,0.1);
+            --black: #000000; --dark: #111111; --dark2: #1A1A1A; --dark3: #222222;
+            --gray: #333333; --gray2: #444444; --light: #888888; --light2: #AAAAAA;
+            --white: #FFFFFF; --error: #FF4444; --error-light: rgba(255,68,68,0.1);
+            --info: #2196F3; --warning: #FFB800; --warning-light: rgba(255,184,0,0.1);
+            --shadow: 0 4px 24px rgba(0,0,0,0.3);
+            --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
+            --radius: 16px; --radius-sm: 10px; --radius-xs: 8px;
+        }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--black); color: var(--white); height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased; }
         
-        /* SCREENS */
-        .screen { display: none; width: 100%; height: 100vh; flex-direction: column; }
+        /* ========== LOADING SCREEN ========== */
+        .loading-screen { position: fixed; inset: 0; background: var(--black); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s; }
+        .loading-screen.hidden { opacity: 0; pointer-events: none; }
+        .loading-logo { font-size: 48px; font-weight: 800; background: linear-gradient(135deg, var(--primary), #00E95B); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 24px; animation: pulse 1.5s infinite; }
+        .loading-spinner { width: 40px; height: 40px; border: 3px solid var(--gray); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        .loading-text { margin-top: 16px; color: var(--light); font-size: 14px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* ========== SCREENS ========== */
+        .screen { display: none; width: 100%; height: 100vh; flex-direction: column; position: relative; }
         .screen.active { display: flex; }
         
-        /* LOGIN */
-        .login-screen { justify-content: center; align-items: center; padding: 20px; }
-        .login-box { width: 100%; max-width: 400px; }
-        .logo-big { font-size: 36px; font-weight: 700; color: var(--primary); text-align: center; margin-bottom: 8px; }
-        .subtitle { color: var(--light); text-align: center; margin-bottom: 40px; }
-        .input-group { margin-bottom: 16px; }
-        .input-group label { display: block; font-size: 13px; color: var(--light); margin-bottom: 6px; }
-        .input-group input { width: 100%; padding: 14px 16px; background: var(--dark); border: 1px solid var(--gray); border-radius: 8px; color: var(--white); font-size: 15px; outline: none; }
-        .input-group input:focus { border-color: var(--primary); }
-        .input-group input::placeholder { color: var(--light); }
+        /* ========== AUTH SCREENS ========== */
+        .auth-screen { justify-content: center; align-items: center; padding: 32px 24px; background: linear-gradient(180deg, var(--dark) 0%, var(--black) 100%); }
+        .auth-logo { font-size: 42px; font-weight: 800; background: linear-gradient(135deg, var(--primary), #00E95B); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; text-align: center; }
+        .auth-subtitle { color: var(--light); text-align: center; margin-bottom: 48px; font-size: 15px; }
+        .auth-form { width: 100%; max-width: 400px; }
+        .auth-step { display: none; }
+        .auth-step.active { display: block; animation: fadeUp 0.4s ease; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* BUTTONS */
-        .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 13px; font-weight: 500; color: var(--light2); margin-bottom: 8px; }
+        .input-wrap { position: relative; }
+        .input-wrap .prefix { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--light); font-size: 15px; font-weight: 500; }
+        .input-wrap input { width: 100%; padding: 16px 16px 16px 60px; background: var(--dark2); border: 2px solid var(--gray); border-radius: var(--radius-sm); color: var(--white); font-size: 16px; font-family: inherit; outline: none; transition: border-color 0.2s; }
+        .input-wrap.no-prefix input { padding-left: 16px; }
+        .input-wrap input:focus { border-color: var(--primary); }
+        .input-wrap input::placeholder { color: var(--gray2); }
+        .otp-inputs { display: flex; gap: 12px; justify-content: center; margin: 24px 0; }
+        .otp-input { width: 60px; height: 70px; background: var(--dark2); border: 2px solid var(--gray); border-radius: var(--radius-sm); color: var(--white); font-size: 28px; font-weight: 700; text-align: center; outline: none; transition: border-color 0.2s; }
+        .otp-input:focus { border-color: var(--primary); }
+        .otp-input.filled { border-color: var(--primary); background: var(--primary-light); }
+        
+        .role-selector { display: flex; gap: 12px; margin: 24px 0; }
+        .role-card { flex: 1; padding: 20px 16px; background: var(--dark2); border: 2px solid var(--gray); border-radius: var(--radius); text-align: center; cursor: pointer; transition: all 0.2s; }
+        .role-card:hover { border-color: var(--gray2); }
+        .role-card.selected { border-color: var(--primary); background: var(--primary-light); }
+        .role-card .icon { font-size: 32px; margin-bottom: 8px; }
+        .role-card .name { font-size: 14px; font-weight: 600; }
+        .role-card .desc { font-size: 11px; color: var(--light); margin-top: 4px; }
+        
+        /* ========== BUTTONS ========== */
+        .btn { width: 100%; padding: 16px; border: none; border-radius: var(--radius-sm); font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn:active { transform: scale(0.98); }
         .btn-primary { background: var(--primary); color: var(--white); }
         .btn-primary:hover { background: var(--primary-dark); }
+        .btn-primary:disabled { background: var(--gray); color: var(--light); cursor: not-allowed; }
         .btn-danger { background: var(--error); color: var(--white); }
-        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
-        .btn-small { padding: 10px 20px; width: auto; font-size: 14px; }
+        .btn-outline { background: transparent; border: 2px solid var(--gray); color: var(--white); }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-ghost { background: transparent; color: var(--primary); padding: 12px; }
+        .btn-sm { padding: 10px 20px; font-size: 14px; width: auto; }
+        .btn-icon { width: 44px; height: 44px; border-radius: 50%; padding: 0; }
+        .btn-row { display: flex; gap: 12px; }
+        .btn-row .btn { flex: 1; }
         
-        /* HEADER */
-        .app-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: var(--dark); border-bottom: 1px solid var(--gray); }
-        .app-header h2 { font-size: 18px; }
-        .header-btn { background: none; border: none; color: var(--white); font-size: 20px; cursor: pointer; }
+        .auth-footer { margin-top: 32px; text-align: center; font-size: 13px; color: var(--light); }
+        .auth-footer a { color: var(--primary); text-decoration: none; }
         
-        /* MAP */
-        .map-container { flex: 1; position: relative; }
-        #map { width: 100%; height: 100%; }
-        .map-overlay { position: absolute; bottom: 20px; left: 20px; right: 20px; z-index: 1000; }
+        /* ========== APP HEADER ========== */
+        .app-header { display: flex; align-items: center; padding: 12px 16px; background: var(--dark); border-bottom: 1px solid var(--gray); gap: 12px; min-height: 56px; }
+        .app-header h1 { font-size: 18px; font-weight: 700; flex: 1; }
+        .header-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--dark2); border: 1px solid var(--gray); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; color: var(--white); transition: all 0.2s; }
+        .header-btn:hover { background: var(--gray); }
+        .header-btn.has-notification { position: relative; }
+        .header-btn.has-notification::after { content: ''; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; background: var(--error); border-radius: 50%; border: 2px solid var(--dark); }
         
-        /* CARDS */
-        .card { background: var(--dark); border: 1px solid var(--gray); border-radius: 12px; padding: 16px; }
-        .card-highlight { border-color: var(--primary); }
+        /* ========== MAP ========== */
+        .map-wrapper { flex: 1; position: relative; overflow: hidden; }
+        .map-wrapper .map { width: 100%; height: 100%; }
+        .map-fade { position: absolute; bottom: 0; left: 0; right: 0; height: 120px; background: linear-gradient(transparent, var(--dark)); pointer-events: none; z-index: 400; }
         
-        /* BOTTOM SHEET */
-        .bottom-sheet { position: absolute; bottom: 0; left: 0; right: 0; background: var(--dark); border-top: 1px solid var(--gray); border-radius: 20px 20px 0 0; padding: 20px; z-index: 1000; max-height: 60vh; overflow-y: auto; }
-        .bottom-sheet h3 { font-size: 20px; margin-bottom: 16px; }
-        .sheet-handle { width: 40px; height: 4px; background: var(--gray); border-radius: 2px; margin: 0 auto 16px; }
+        /* ========== BOTTOM SHEET ========== */
+        .bottom-sheet { position: absolute; bottom: 0; left: 0; right: 0; z-index: 500; background: var(--dark); border-radius: 24px 24px 0 0; box-shadow: var(--shadow-lg); transition: transform 0.3s ease; max-height: 75vh; overflow: hidden; display: flex; flex-direction: column; }
+        .sheet-handle { width: 36px; height: 4px; background: var(--gray2); border-radius: 2px; margin: 12px auto 8px; cursor: grab; }
+        .sheet-content { padding: 8px 20px 24px; overflow-y: auto; flex: 1; }
+        .sheet-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .sheet-subtitle { font-size: 14px; color: var(--light); margin-bottom: 16px; }
         
-        /* PRICE DISPLAY */
-        .price-display { text-align: center; padding: 16px; background: var(--gray); border-radius: 12px; margin: 12px 0; }
-        .price-label { font-size: 13px; color: var(--light); }
-        .price-value { font-size: 32px; font-weight: 700; color: var(--primary); }
-        .price-details { font-size: 13px; color: var(--light); }
+        /* ========== SEARCH ========== */
+        .search-box { position: relative; margin-bottom: 16px; }
+        .search-box input { width: 100%; padding: 14px 16px 14px 44px; background: var(--dark2); border: 1px solid var(--gray); border-radius: var(--radius-sm); color: var(--white); font-size: 15px; font-family: inherit; outline: none; }
+        .search-box input:focus { border-color: var(--primary); }
+        .search-box .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--light); font-size: 18px; }
         
-        /* LOCATION LIST */
-        .location-list { max-height: 200px; overflow-y: auto; }
-        .location-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid var(--gray); cursor: pointer; gap: 12px; }
-        .location-item:hover { background: var(--gray); }
-        .location-icon { width: 36px; height: 36px; border-radius: 50%; background: var(--gray); display: flex; align-items: center; justify-content: center; font-size: 16px; }
-        .location-info { flex: 1; }
-        .location-name { font-size: 14px; font-weight: 500; }
-        .location-addr { font-size: 12px; color: var(--light); }
+        /* ========== LOCATION LIST ========== */
+        .location-list { max-height: 240px; overflow-y: auto; }
+        .location-item { display: flex; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--gray); cursor: pointer; gap: 14px; transition: background 0.15s; }
+        .location-item:hover { background: var(--dark2); margin: 0 -20px; padding: 14px 20px; border-radius: var(--radius-xs); }
+        .location-item:active { background: var(--gray); }
+        .loc-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+        .loc-icon.green { background: rgba(0,177,64,0.15); }
+        .loc-icon.red { background: rgba(255,68,68,0.15); }
+        .loc-icon.blue { background: rgba(33,150,243,0.15); }
+        .loc-icon.gray { background: var(--dark3); }
+        .loc-info { flex: 1; min-width: 0; }
+        .loc-name { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .loc-addr { font-size: 12px; color: var(--light); margin-top: 2px; }
+        .loc-arrow { color: var(--gray2); font-size: 16px; flex-shrink: 0; }
         
-        /* RIDE STATUS */
-        .ride-status { padding: 20px; text-align: center; }
-        .status-animation { font-size: 48px; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-        .status-text { font-size: 18px; margin: 16px 0; }
+        /* ========== ROUTE DISPLAY ========== */
+        .route-display { background: var(--dark2); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 16px; }
+        .route-point { display: flex; align-items: center; gap: 12px; }
+        .route-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 3px solid; }
+        .route-dot.green { border-color: var(--primary); background: var(--primary); }
+        .route-dot.red { border-color: var(--error); background: var(--error); }
+        .route-line { width: 2px; height: 24px; background: var(--gray); margin-left: 5px; }
+        .route-text { font-size: 14px; flex: 1; }
+        .route-text small { color: var(--light); display: block; margin-top: 2px; font-size: 12px; }
         
-        /* DRIVER CARD */
-        .driver-card { display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--dark); border: 1px solid var(--gray); border-radius: 12px; margin: 12px 0; }
-        .driver-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--white); font-weight: 600; }
-        .driver-info { flex: 1; }
+        /* ========== PRICE CARD ========== */
+        .price-card { background: linear-gradient(135deg, var(--dark2), var(--dark3)); border: 1px solid var(--gray); border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 16px; }
+        .price-card .label { font-size: 13px; color: var(--light); margin-bottom: 4px; }
+        .price-card .value { font-size: 36px; font-weight: 800; color: var(--primary); line-height: 1.1; }
+        .price-card .value small { font-size: 16px; font-weight: 500; }
+        .price-card .details { font-size: 13px; color: var(--light); margin-top: 8px; }
+        .price-card .breakdown { font-size: 12px; color: var(--gray2); margin-top: 4px; }
+        
+        /* ========== PAYMENT SELECTOR ========== */
+        .payment-options { display: flex; gap: 8px; margin-bottom: 16px; }
+        .payment-opt { flex: 1; padding: 12px 8px; background: var(--dark2); border: 2px solid var(--gray); border-radius: var(--radius-xs); text-align: center; cursor: pointer; transition: all 0.2s; }
+        .payment-opt:hover { border-color: var(--gray2); }
+        .payment-opt.selected { border-color: var(--primary); background: var(--primary-light); }
+        .payment-opt .pay-icon { font-size: 22px; display: block; margin-bottom: 4px; }
+        .payment-opt .pay-name { font-size: 11px; font-weight: 500; }
+        
+        /* ========== DRIVER CARD ========== */
+        .driver-card { display: flex; align-items: center; gap: 14px; padding: 16px; background: var(--dark2); border: 1px solid var(--gray); border-radius: var(--radius); margin-bottom: 12px; }
+        .driver-avatar { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; flex-shrink: 0; }
+        .driver-avatar.green { background: var(--primary); color: var(--white); }
+        .driver-avatar.blue { background: var(--info); color: var(--white); }
+        .driver-details { flex: 1; min-width: 0; }
         .driver-name { font-size: 16px; font-weight: 600; }
-        .driver-car { font-size: 13px; color: var(--light); }
-        .driver-rating { font-size: 13px; color: var(--warning); }
+        .driver-car { font-size: 13px; color: var(--light); margin-top: 2px; }
+        .driver-meta { display: flex; gap: 12px; margin-top: 4px; }
+        .driver-meta span { font-size: 12px; color: var(--light2); }
+        .driver-actions { display: flex; gap: 8px; }
+        .driver-actions .btn-icon { width: 44px; height: 44px; border-radius: 50%; background: var(--dark3); border: 1px solid var(--gray); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; }
         
-        /* TABS */
-        .tabs { display: flex; background: var(--dark); border-top: 1px solid var(--gray); }
-        .tab { flex: 1; padding: 12px; text-align: center; color: var(--light); cursor: pointer; border: none; background: none; font-size: 12px; }
-        .tab.active { color: var(--primary); }
-        .tab-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+        /* ========== RIDE STATUS ========== */
+        .ride-status { text-align: center; padding: 20px 0; }
+        .status-icon { font-size: 64px; margin-bottom: 16px; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .status-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+        .status-sub { font-size: 14px; color: var(--light); margin-bottom: 20px; }
+        .status-timer { font-size: 14px; color: var(--warning); margin-bottom: 16px; }
         
-        /* DRIVER DASHBOARD */
-        .dashboard { padding: 20px; overflow-y: auto; flex: 1; }
-        .online-toggle { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--dark); border-radius: 12px; margin-bottom: 16px; }
-        .toggle-switch { width: 56px; height: 30px; background: var(--gray); border-radius: 15px; position: relative; cursor: pointer; transition: background 0.3s; }
-        .toggle-switch.active { background: var(--primary); }
-        .toggle-switch::after { content: ''; position: absolute; width: 26px; height: 26px; background: var(--white); border-radius: 50%; top: 2px; left: 2px; transition: transform 0.3s; }
-        .toggle-switch.active::after { transform: translateX(26px); }
+        /* ========== BADGES ========== */
+        .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; gap: 4px; }
+        .badge-green { background: var(--primary); color: var(--white); }
+        .badge-red { background: var(--error); color: var(--white); }
+        .badge-yellow { background: var(--warning); color: var(--black); }
+        .badge-blue { background: var(--info); color: var(--white); }
+        .badge-gray { background: var(--gray); color: var(--light2); }
         
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
-        .stat-card { background: var(--dark); border-radius: 12px; padding: 16px; text-align: center; }
-        .stat-value { font-size: 24px; font-weight: 700; color: var(--primary); }
-        .stat-label { font-size: 12px; color: var(--light); margin-top: 4px; }
+        /* ========== STATS ========== */
+        .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+        .stat-box { background: var(--dark2); border-radius: var(--radius-sm); padding: 16px 12px; text-align: center; border: 1px solid var(--gray); }
+        .stat-box .stat-val { font-size: 22px; font-weight: 700; color: var(--primary); }
+        .stat-box .stat-lbl { font-size: 11px; color: var(--light); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        /* RIDE REQUEST POPUP */
-        .ride-popup { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 2000; }
-        .ride-popup.active { display: flex; }
-        .ride-popup-content { background: var(--dark); border: 2px solid var(--primary); border-radius: 16px; padding: 24px; width: 90%; max-width: 400px; }
-        .ride-popup-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .ride-popup-timer { background: var(--warning); color: var(--black); padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 14px; }
+        /* ========== DRIVER ONLINE TOGGLE ========== */
+        .online-bar { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--dark2); border-radius: var(--radius); margin-bottom: 16px; border: 1px solid var(--gray); }
+        .online-bar .status { font-weight: 600; font-size: 16px; }
+        .online-bar .status small { font-weight: 400; color: var(--light); display: block; font-size: 13px; margin-top: 2px; }
+        .toggle { width: 56px; height: 32px; background: var(--gray); border-radius: 16px; position: relative; cursor: pointer; transition: background 0.3s; flex-shrink: 0; }
+        .toggle.on { background: var(--primary); }
+        .toggle::after { content: ''; position: absolute; width: 26px; height: 26px; background: var(--white); border-radius: 50%; top: 3px; left: 3px; transition: transform 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .toggle.on::after { transform: translateX(24px); }
         
-        /* EARNINGS */
-        .earnings-total { background: var(--primary); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 16px; }
-        .earnings-total .label { color: rgba(255,255,255,0.8); font-size: 14px; }
-        .earnings-total .value { font-size: 36px; font-weight: 700; margin-top: 8px; }
+        /* ========== EARNINGS ========== */
+        .earnings-hero { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-radius: var(--radius); padding: 24px; text-align: center; margin-bottom: 16px; }
+        .earnings-hero .earn-label { color: rgba(255,255,255,0.8); font-size: 14px; }
+        .earnings-hero .earn-value { font-size: 40px; font-weight: 800; margin-top: 4px; }
+        .earnings-hero .earn-sub { font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 4px; }
         
-        /* HISTORY */
-        .history-list { padding: 16px; overflow-y: auto; flex: 1; }
-        .history-item { background: var(--dark); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-        .history-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
-        .history-price { color: var(--primary); font-weight: 600; }
-        .history-route { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--light); }
-        .history-dot { width: 8px; height: 8px; border-radius: 50%; }
+        /* ========== RIDE REQUEST POPUP ========== */
+        .popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+        .popup-overlay.show { display: flex; }
+        .popup-card { background: var(--dark); border: 2px solid var(--primary); border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; animation: popIn 0.3s ease; }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .popup-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .popup-timer { background: var(--warning); color: var(--black); padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 16px; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .popup-price { text-align: center; padding: 16px; background: var(--dark2); border-radius: var(--radius-sm); margin: 16px 0; }
+        .popup-price .pp-label { font-size: 13px; color: var(--light); }
+        .popup-price .pp-value { font-size: 32px; font-weight: 800; color: var(--primary); }
         
-        /* PROFILE */
-        .profile-screen { padding: 20px; overflow-y: auto; flex: 1; }
-        .profile-header { text-align: center; margin-bottom: 24px; }
-        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 12px; }
-        .profile-name { font-size: 20px; font-weight: 600; }
-        .profile-phone { color: var(--light); font-size: 14px; }
-        .profile-menu { margin-top: 24px; }
-        .menu-item { display: flex; align-items: center; padding: 16px; border-bottom: 1px solid var(--gray); gap: 12px; cursor: pointer; }
-        .menu-item:hover { background: var(--dark); }
-        .menu-icon { font-size: 20px; }
-        .menu-label { flex: 1; font-size: 15px; }
-        .menu-arrow { color: var(--light); }
+        /* ========== HISTORY ========== */
+        .history-item { background: var(--dark2); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 10px; border: 1px solid var(--gray); }
+        .history-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .history-route { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+        .history-point { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+        .history-point .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .history-line { width: 2px; height: 16px; background: var(--gray); margin-left: 3px; }
+        .history-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--gray); }
+        .history-price { font-size: 16px; font-weight: 700; color: var(--primary); }
+        .history-meta { font-size: 12px; color: var(--light); }
         
-        /* BADGE */
-        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-        .badge-success { background: var(--primary); }
-        .badge-warning { background: var(--warning); color: var(--black); }
-        .badge-error { background: var(--error); }
-        .badge-info { background: var(--info); }
+        /* ========== PROFILE ========== */
+        .profile-content { flex: 1; overflow-y: auto; padding: 20px; }
+        .profile-hero { text-align: center; padding: 20px 0 24px; }
+        .profile-avatar { width: 88px; height: 88px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; margin: 0 auto 12px; border: 3px solid var(--primary); }
+        .profile-name { font-size: 22px; font-weight: 700; }
+        .profile-phone { font-size: 14px; color: var(--light); margin-top: 4px; }
+        .profile-rating { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; font-size: 14px; color: var(--warning); }
         
-        /* PAYMENT */
-        .payment-options { display: flex; gap: 8px; margin: 12px 0; }
-        .payment-option { flex: 1; padding: 12px; border: 2px solid var(--gray); border-radius: 8px; text-align: center; cursor: pointer; font-size: 12px; }
-        .payment-option.selected { border-color: var(--primary); background: rgba(0,177,64,0.1); }
-        .payment-icon { font-size: 24px; display: block; margin-bottom: 4px; }
+        .menu-section { margin-bottom: 16px; }
+        .menu-section-title { font-size: 12px; color: var(--light); text-transform: uppercase; letter-spacing: 1px; padding: 0 16px; margin-bottom: 8px; }
+        .menu-list { background: var(--dark2); border-radius: var(--radius); border: 1px solid var(--gray); overflow: hidden; }
+        .menu-row { display: flex; align-items: center; padding: 16px; gap: 14px; cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--gray); }
+        .menu-row:last-child { border-bottom: none; }
+        .menu-row:hover { background: var(--dark3); }
+        .menu-row:active { background: var(--gray); }
+        .menu-row .m-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+        .menu-row .m-icon.green { background: rgba(0,177,64,0.15); }
+        .menu-row .m-icon.blue { background: rgba(33,150,243,0.15); }
+        .menu-row .m-icon.red { background: rgba(255,68,68,0.15); }
+        .menu-row .m-icon.yellow { background: rgba(255,184,0,0.15); }
+        .menu-row .m-icon.gray { background: var(--gray); }
+        .menu-row .m-label { flex: 1; font-size: 15px; }
+        .menu-row .m-arrow { color: var(--gray2); font-size: 14px; }
+        
+        /* ========== TABS ========== */
+        .tab-bar { display: flex; background: var(--dark); border-top: 1px solid var(--gray); padding-bottom: env(safe-area-inset-bottom); }
+        .tab-item { flex: 1; padding: 10px 0 8px; text-align: center; color: var(--gray2); cursor: pointer; transition: color 0.2s; border: none; background: none; font-family: inherit; }
+        .tab-item.active { color: var(--primary); }
+        .tab-item .tab-icon { font-size: 22px; display: block; margin-bottom: 2px; }
+        .tab-item .tab-label { font-size: 11px; font-weight: 500; }
+        
+        /* ========== EMPTY STATE ========== */
+        .empty-state { text-align: center; padding: 40px 20px; }
+        .empty-state .empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.5; }
+        .empty-state .empty-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+        .empty-state .empty-desc { font-size: 14px; color: var(--light); }
+        
+        /* ========== SCROLLBAR ========== */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--gray); border-radius: 2px; }
+        
+        /* ========== ANIMATIONS ========== */
+        .fade-in { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .slide-up { animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* ========== ADMIN DASHBOARD ========== */
+        .admin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+        .admin-card { background: var(--dark2); border: 1px solid var(--gray); border-radius: var(--radius); padding: 16px; }
+        .admin-card h3 { font-size: 14px; color: var(--light); margin-bottom: 8px; }
+        .admin-card .value { font-size: 28px; font-weight: 700; color: var(--primary); }
+        .admin-card .change { font-size: 12px; color: var(--primary); margin-top: 4px; }
+        .admin-card .change.negative { color: var(--error); }
+        
+        .chart-container { background: var(--dark2); border: 1px solid var(--gray); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .chart-header h3 { font-size: 16px; font-weight: 600; }
+        .chart-bar { display: flex; align-items: end; gap: 8px; height: 120px; }
+        .chart-bar-item { flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; min-height: 10px; transition: height 0.3s; }
+        .chart-labels { display: flex; gap: 8px; margin-top: 8px; }
+        .chart-labels span { flex: 1; text-align: center; font-size: 10px; color: var(--light); }
+        
+        .driver-list { max-height: 300px; overflow-y: auto; }
+        .driver-list-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid var(--gray); gap: 12px; }
+        .driver-list-item:last-child { border-bottom: none; }
+        .driver-status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .driver-status-dot.online { background: var(--primary); }
+        .driver-status-dot.offline { background: var(--gray); }
+        .driver-status-dot.busy { background: var(--warning); }
+        
+        .ride-list-item { background: var(--dark3); border-radius: var(--radius-xs); padding: 12px; margin-bottom: 8px; border: 1px solid var(--gray); }
+        .ride-list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .ride-list-route { font-size: 14px; margin-bottom: 4px; }
+        .ride-list-meta { display: flex; gap: 16px; font-size: 12px; color: var(--light); }
+        
+        /* ========== SAFETY FEATURES ========== */
+        .safety-banner { background: var(--warning-light); border: 1px solid var(--warning); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+        .safety-banner .icon { font-size: 24px; }
+        .safety-banner .text { font-size: 13px; color: var(--warning); flex: 1; }
+        
+        .share-options { display: flex; gap: 8px; margin-top: 12px; }
+        .share-opt { flex: 1; padding: 12px; background: var(--dark2); border: 1px solid var(--gray); border-radius: var(--radius-xs); text-align: center; cursor: pointer; transition: all 0.2s; }
+        .share-opt:hover { border-color: var(--primary); }
+        .share-opt .icon { font-size: 24px; margin-bottom: 4px; }
+        .share-opt .name { font-size: 12px; color: var(--light); }
+        
+        /* ========== RATING SYSTEM ========== */
+        .rating-container { text-align: center; padding: 20px; }
+        .rating-stars { display: flex; justify-content: center; gap: 8px; margin: 16px 0; }
+        .rating-star { font-size: 32px; cursor: pointer; transition: transform 0.2s; color: var(--gray); }
+        .rating-star.active { color: var(--warning); transform: scale(1.1); }
+        .rating-comment { width: 100%; padding: 12px; background: var(--dark2); border: 1px solid var(--gray); border-radius: var(--radius-xs); color: var(--white); font-family: inherit; resize: none; height: 80px; margin-top: 12px; }
+        
+        /* ========== PROMO CODE ========== */
+        .promo-section { background: var(--dark2); border: 1px solid var(--gray); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+        .promo-input-group { display: flex; gap: 8px; }
+        .promo-input-group input { flex: 1; padding: 12px; background: var(--dark3); border: 1px solid var(--gray); border-radius: var(--radius-xs); color: var(--white); font-family: inherit; }
+        .promo-input-group button { padding: 12px 20px; background: var(--primary); color: var(--white); border: none; border-radius: var(--radius-xs); font-weight: 600; cursor: pointer; }
+        
+        /* ========== NOTIFICATION PANEL ========== */
+        .notification-panel { position: fixed; top: 0; right: -300px; width: 300px; height: 100vh; background: var(--dark); border-left: 1px solid var(--gray); z-index: 1000; transition: right 0.3s; padding: 20px; overflow-y: auto; }
+        .notification-panel.open { right: 0; }
+        .notification-item { padding: 12px; background: var(--dark2); border-radius: var(--radius-xs); margin-bottom: 8px; border-left: 3px solid var(--primary); }
+        .notification-item .time { font-size: 11px; color: var(--light); margin-bottom: 4px; }
+        .notification-item .message { font-size: 13px; }
+        
+        /* ========== HELP CENTER ========== */
+        .help-item { background: var(--dark2); border: 1px solid var(--gray); border-radius: var(--radius-sm); margin-bottom: 8px; overflow: hidden; }
+        .help-question { padding: 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .help-question:hover { background: var(--dark3); }
+        .help-answer { padding: 0 16px 16px; font-size: 14px; color: var(--light); display: none; }
+        .help-item.open .help-answer { display: block; }
+        .help-item.open .help-arrow { transform: rotate(180deg); }
+        .help-arrow { transition: transform 0.2s; }
     </style>
 </head>
 <body>
-    <!-- LOGIN SCREEN -->
-    <div class="screen active" id="screen-login">
-        <div class="login-screen">
-            <div class="login-box">
-                <div class="logo-big">Uber Angola</div>
-                <p class="subtitle">Mobilidade urbana em Angola</p>
-                
-                <div id="login-step1">
-                    <div class="input-group">
-                        <label>Número de telefone</label>
-                        <input type="tel" id="phone-input" placeholder="+244 XXX XXX XXX" maxlength="12">
+
+<!-- ==================== LOADING SCREEN ==================== -->
+<div class="loading-screen" id="loading-screen">
+    <div class="loading-logo">Uber Angola</div>
+    <div class="loading-spinner"></div>
+    <div class="loading-text">A carregar...</div>
+</div>
+
+<!-- ==================== SCREEN: LOGIN ==================== -->
+<div class="screen" id="s-login">
+    <div class="auth-screen">
+        <div class="auth-logo">Uber Angola</div>
+        <p class="auth-subtitle">Mobilidade urbana em Angola</p>
+        <div class="auth-form">
+            <!-- Step 1: Phone -->
+            <div class="auth-step active" id="auth-step1">
+                <div class="input-group">
+                    <label>Número de telefone</label>
+                    <div class="input-wrap">
+                        <span class="prefix">+244</span>
+                        <input type="tel" id="inp-phone" placeholder="9XX XXX XXX" maxlength="9" inputmode="numeric">
                     </div>
-                    <button class="btn btn-primary" onclick="requestOTP()">Enviar Código</button>
                 </div>
-                
-                <div id="login-step2" style="display:none">
-                    <div class="input-group">
-                        <label>Código de verificação</label>
-                        <input type="text" id="otp-input" placeholder="0000" maxlength="4">
-                    </div>
-                    <button class="btn btn-primary" onclick="verifyOTP()">Verificar</button>
-                    <button class="btn btn-outline" style="margin-top:12px" onclick="requestOTP()">Reenviar Código</button>
+                <button class="btn btn-primary" onclick="goStep(2)">
+                    <span>Continuar</span>
+                    <span>→</span>
+                </button>
+            </div>
+            <!-- Step 2: OTP -->
+            <div class="auth-step" id="auth-step2">
+                <p style="text-align:center;color:var(--light);margin-bottom:8px">Enviámos um código para</p>
+                <p style="text-align:center;font-weight:600;margin-bottom:24px" id="otp-phone-display"></p>
+                <div class="otp-inputs">
+                    <input class="otp-input" type="tel" maxlength="1" inputmode="numeric" data-otp="0">
+                    <input class="otp-input" type="tel" maxlength="1" inputmode="numeric" data-otp="1">
+                    <input class="otp-input" type="tel" maxlength="1" inputmode="numeric" data-otp="2">
+                    <input class="otp-input" type="tel" maxlength="1" inputmode="numeric" data-otp="3">
                 </div>
-                
-                <div id="login-step3" style="display:none">
-                    <div class="input-group">
-                        <label>Nome completo</label>
-                        <input type="text" id="name-input" placeholder="O seu nome">
+                <button class="btn btn-primary" id="btn-verify" onclick="verifyOTP()" disabled>Verificar</button>
+                <button class="btn btn-ghost" onclick="goStep(1)">← Alterar número</button>
+                <p style="text-align:center;margin-top:16px;font-size:13px;color:var(--light)">
+                    Não recebeu? <a href="#" onclick="resendOTP()" style="color:var(--primary)">Reenviar código</a>
+                </p>
+            </div>
+            <!-- Step 3: Register -->
+            <div class="auth-step" id="auth-step3">
+                <div class="input-group">
+                    <label>Nome completo</label>
+                    <div class="input-wrap no-prefix">
+                        <input type="text" id="inp-name" placeholder="O seu nome">
                     </div>
-                    <p style="margin-bottom:12px;font-size:14px;color:var(--light)">Tipo de conta:</p>
-                    <div style="display:flex;gap:12px;margin-bottom:16px">
-                        <button class="btn btn-outline" id="role-passenger" onclick="selectRole('passenger')" style="flex:1">🚗 Passageiro</button>
-                        <button class="btn btn-outline" id="role-driver" onclick="selectRole('driver')" style="flex:1">🚖 Motorista</button>
+                </div>
+                <p style="font-size:13px;color:var(--light);margin-bottom:12px">Tipo de conta</p>
+                <div class="role-selector">
+                    <div class="role-card selected" onclick="selectRole('passenger')" id="rc-passenger">
+                        <div class="icon">🚗</div>
+                        <div class="name">Passageiro</div>
+                        <div class="desc">Pedir corridas</div>
                     </div>
-                    <button class="btn btn-primary" onclick="register()">Criar Conta</button>
+                    <div class="role-card" onclick="selectRole('driver')" id="rc-driver">
+                        <div class="icon">🚖</div>
+                        <div class="name">Motorista</div>
+                        <div class="desc">Ganhar dinheiro</div>
+                    </div>
+                    <div class="role-card" onclick="selectRole('admin')" id="rc-admin">
+                        <div class="icon">⚙️</div>
+                        <div class="name">Admin</div>
+                        <div class="desc">Gerir plataforma</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="doRegister()">Criar Conta</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== SCREEN: PASSENGER ==================== -->
+<div class="screen" id="s-passenger">
+    <div class="app-header">
+        <div style="font-size:20px;font-weight:800;color:var(--primary)">UA</div>
+        <h1 style="flex:1;margin-left:8px">Uber Angola</h1>
+        <div class="header-btn has-notification" onclick="toggleNotifications()">🔔</div>
+        <div class="header-btn" onclick="goScreen('s-passenger-profile')">👤</div>
+    </div>
+    <div class="map-wrapper">
+        <div id="map-p" class="map"></div>
+        <div class="map-fade"></div>
+        <div class="bottom-sheet" id="p-sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-content">
+                <!-- Default -->
+                <div id="p-default">
+                    <div class="sheet-title" id="p-greeting">Olá</div>
+                    <div class="sheet-subtitle">Para onde queres ir?</div>
+                    <button class="btn btn-primary" onclick="showSearch()">
+                        <span>📍</span>
+                        <span>Escolher Destino</span>
+                    </button>
+                    <div style="margin-top:16px">
+                        <div class="sheet-subtitle" style="margin-bottom:8px">Locais populares</div>
+                        <div class="location-list" id="p-popular"></div>
+                    </div>
+                </div>
+                <!-- Search -->
+                <div id="p-search" style="display:none">
+                    <div class="sheet-title">Buscar Destino</div>
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="p-search-input" placeholder="Pesquisar bairro..." oninput="filterLocations()">
+                    </div>
+                    <div class="location-list" id="p-locations"></div>
+                    <button class="btn btn-outline" style="margin-top:12px" onclick="hideSearch()">Cancelar</button>
+                </div>
+                <!-- Confirm -->
+                <div id="p-confirm" style="display:none">
+                    <div class="sheet-title">Resumo da Corrida</div>
+                    <div class="route-display">
+                        <div class="route-point">
+                            <div class="route-dot green"></div>
+                            <div class="route-text"><span id="p-from">De</span><small>Partida</small></div>
+                        </div>
+                        <div class="route-line"></div>
+                        <div class="route-point">
+                            <div class="route-dot red"></div>
+                            <div class="route-text"><span id="p-to">Para</span><small>Destino</small></div>
+                        </div>
+                    </div>
+                    <div class="price-card">
+                        <div class="label">Preço estimado</div>
+                        <div class="value" id="p-price">0 <small>Kz</small></div>
+                        <div class="details" id="p-distance">0 km · 0 min</div>
+                        <div class="breakdown" id="p-breakdown"></div>
+                    </div>
+                    <p style="font-size:12px;color:var(--light);text-align:center;margin-bottom:12px">💳 Pagamento direto ao motorista</p>
+                    <div class="payment-options">
+                        <div class="payment-opt selected" onclick="selectPayment(this,'cash')">
+                            <span class="pay-icon">💵</span>
+                            <span class="pay-name">Dinheiro</span>
+                        </div>
+                        <div class="payment-opt" onclick="selectPayment(this,'multicaixa')">
+                            <span class="pay-icon">📱</span>
+                            <span class="pay-name">Multicaixa</span>
+                        </div>
+                        <div class="payment-opt" onclick="selectPayment(this,'unitel')">
+                            <span class="pay-icon">📲</span>
+                            <span class="pay-name">Unitel</span>
+                        </div>
+                    </div>
+                    <div class="promo-section">
+                        <div style="font-size:13px;color:var(--light);margin-bottom:8px">Código promocional</div>
+                        <div class="promo-input-group">
+                            <input type="text" placeholder="Inserir código" id="promo-input">
+                            <button onclick="applyPromo()">Aplicar</button>
+                        </div>
+                        <div id="promo-message" style="font-size:12px;margin-top:8px;display:none"></div>
+                    </div>
+                    <button class="btn btn-primary" onclick="doRequestRide()">Pedir Corrida</button>
+                    <button class="btn btn-ghost" onclick="hideConfirm()">← Voltar</button>
+                </div>
+                <!-- Waiting -->
+                <div id="p-waiting" style="display:none">
+                    <div class="ride-status">
+                        <div class="status-icon">🔍</div>
+                        <div class="status-title">Procurando motorista</div>
+                        <div class="status-sub">A conectar ao motorista mais próximo...</div>
+                        <div class="status-timer" id="p-wait-timer">Aguarde...</div>
+                        <button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="cancelWaiting()">Cancelar</button>
+                    </div>
+                </div>
+                <!-- Driver Found -->
+                <div id="p-found" style="display:none">
+                    <div class="sheet-title">Motorista encontrado!</div>
+                    <div class="driver-card" id="p-driver-card">
+                        <div class="driver-avatar green" id="p-d-avatar">C</div>
+                        <div class="driver-details">
+                            <div class="driver-name" id="p-d-name">Carlos</div>
+                            <div class="driver-car" id="p-d-car">Toyota · LD-1234</div>
+                            <div class="driver-meta">
+                                <span>⭐ <span id="p-d-rating">4.8</span></span>
+                                <span>📍 <span id="p-d-dist">1.2 km</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-bottom:12px">
+                        <button class="btn btn-outline" style="flex:1" onclick="alert('A ligar ao motorista...')">📞 Ligar</button>
+                        <button class="btn btn-outline" style="flex:1" onclick="alert('A abrir WhatsApp...')">💬 Mensagem</button>
+                    </div>
+                    <div id="p-eta-info" style="text-align:center;padding:12px;background:var(--dark2);border-radius:var(--radius-xs);margin-bottom:12px">
+                        <div style="font-size:13px;color:var(--light)">Chega em</div>
+                        <div style="font-size:24px;font-weight:700;color:var(--primary)" id="p-eta">3 min</div>
+                    </div>
+                    <button class="btn btn-danger btn-sm" onclick="cancelRidePassenger()" style="width:100%">Cancelar Corrida</button>
+                </div>
+                <!-- In Ride -->
+                <div id="p-riding" style="display:none">
+                    <div class="sheet-title">Em viagem</div>
+                    <div class="driver-card" id="p-ride-driver-card"></div>
+                    <div style="background:var(--dark2);border-radius:var(--radius-sm);padding:16px;margin-bottom:12px">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                            <span style="color:var(--light);font-size:13px">Destino</span>
+                            <span style="font-size:13px;font-weight:500" id="p-ride-to">Aeroporto</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                            <span style="color:var(--light);font-size:13px">Tempo restante</span>
+                            <span style="font-size:13px;font-weight:500" id="p-ride-eta">15 min</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between">
+                            <span style="color:var(--light);font-size:13px">Preço</span>
+                            <span style="font-size:18px;font-weight:700;color:var(--primary)" id="p-ride-price">3,200 Kz</span>
+                        </div>
+                    </div>
+                    <div class="safety-banner">
+                        <div class="icon">🛡️</div>
+                        <div class="text">A sua viagem está a ser monitorizada por segurança</div>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn btn-outline" style="flex:1" onclick="shareRide()">📤 Partilhar</button>
+                        <button class="btn btn-danger" style="flex:1" onclick="showEmergency()">🚨 Emergência</button>
+                        <button class="btn btn-primary" style="flex:1" onclick="completePassengerRide()">Finalizar</button>
+                    </div>
+                </div>
+                <!-- Completed -->
+                <div id="p-done" style="display:none">
+                    <div class="ride-status">
+                        <div class="status-icon">🎉</div>
+                        <div class="status-title">Corrida Concluída!</div>
+                        <div class="price-card" style="margin:16px 0">
+                            <div class="label">Total</div>
+                            <div class="value" id="p-done-price">0 <small>Kz</small></div>
+                        </div>
+                        <div class="rating-container">
+                            <div style="font-size:14px;color:var(--light);margin-bottom:8px">Avalie o motorista</div>
+                            <div class="rating-stars" id="rating-stars">
+                                <div class="rating-star" onclick="rateDriver(1)">⭐</div>
+                                <div class="rating-star" onclick="rateDriver(2)">⭐</div>
+                                <div class="rating-star" onclick="rateDriver(3)">⭐</div>
+                                <div class="rating-star" onclick="rateDriver(4)">⭐</div>
+                                <div class="rating-star" onclick="rateDriver(5)">⭐</div>
+                            </div>
+                            <textarea class="rating-comment" placeholder="Comentário opcional..."></textarea>
+                        </div>
+                        <p style="font-size:13px;color:var(--light);margin-bottom:16px">Pagamento em dinheiro ao motorista</p>
+                        <button class="btn btn-primary" onclick="resetPassenger()">Pedir Nova Corrida</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+    <div class="tab-bar">
+        <button class="tab-item active" onclick="pTab(this,'home')"><span class="tab-icon">🏠</span><span class="tab-label">Início</span></button>
+        <button class="tab-item" onclick="pTab(this,'history')"><span class="tab-icon">📋</span><span class="tab-label">Histórico</span></button>
+        <button class="tab-item" onclick="goScreen('s-passenger-profile')"><span class="tab-icon">👤</span><span class="tab-label">Perfil</span></button>
+    </div>
+</div>
 
-    <!-- PASSENGER SCREEN -->
-    <div class="screen" id="screen-passenger">
-        <div class="app-header">
-            <h2>🚗 Uber Angola</h2>
-            <button class="header-btn" onclick="showProfile()">👤</button>
+<!-- ==================== SCREEN: PASSENGER PROFILE ==================== -->
+<div class="screen" id="s-passenger-profile">
+    <div class="app-header">
+        <div class="header-btn" onclick="goScreen('s-passenger')">←</div>
+        <h1>Perfil</h1>
+        <div></div>
+    </div>
+    <div class="profile-content">
+        <div class="profile-hero">
+            <div class="profile-avatar" id="pp-avatar">M</div>
+            <div class="profile-name" id="pp-name">Maria</div>
+            <div class="profile-phone" id="pp-phone">+244 9XX XXX XXX</div>
+            <div class="profile-rating">⭐ 4.8 · 42 corridas</div>
         </div>
-        <div class="map-container">
-            <div id="map-passenger"></div>
-            <div class="map-overlay">
-                <div class="bottom-sheet" id="passenger-sheet">
-                    <div class="sheet-handle"></div>
-                    <div id="passenger-default">
-                        <h3 id="greeting">Olá, Passageiro</h3>
-                        <button class="btn btn-primary" style="margin-top:12px" onclick="showSearch()">📍 Para onde vai?</button>
-                    </div>
-                    <div id="passenger-search" style="display:none">
-                        <h3>Buscar Destino</h3>
-                        <input type="text" id="search-input" placeholder="Pesquisar bairro..." style="width:100%;padding:12px;background:var(--gray);border:1px solid var(--gray);border-radius:8px;color:var(--white);margin:12px 0;font-size:14px" oninput="filterLocations()">
-                        <div class="location-list" id="location-list"></div>
-                        <button class="btn btn-outline" style="margin-top:12px" onclick="hideSearch()">Cancelar</button>
-                    </div>
-                    <div id="passenger-confirm" style="display:none">
-                        <h3>Confirmar Corrida</h3>
-                        <div style="margin:12px 0">
-                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                                <span class="history-dot" style="background:var(--primary)"></span>
-                                <span id="confirm-from">Origem</span>
-                            </div>
-                            <div style="display:flex;align-items:center;gap:8px">
-                                <span class="history-dot" style="background:var(--error)"></span>
-                                <span id="confirm-to">Destino</span>
-                            </div>
-                        </div>
-                        <div class="price-display">
-                            <div class="price-label">Preço estimado</div>
-                            <div class="price-value" id="confirm-price">0 Kz</div>
-                            <div class="price-details" id="confirm-details">0 km · 0 min</div>
-                        </div>
-                        <p style="font-size:12px;color:var(--light);text-align:center;margin:8px 0">Pagamento: Dinheiro ou Multicaixa Express ao motorista</p>
-                        <button class="btn btn-primary" onclick="requestRide()">Pedir Corrida</button>
-                        <button class="btn btn-outline" style="margin-top:8px" onclick="hideConfirm()">Cancelar</button>
-                    </div>
-                    <div id="passenger-waiting" style="display:none">
-                        <div class="ride-status">
-                            <div class="status-animation">🔍</div>
-                            <div class="status-text">Procurando motorista...</div>
-                            <button class="btn btn-danger btn-small" style="margin-top:16px" onclick="cancelRide()">Cancelar</button>
-                        </div>
-                    </div>
-                    <div id="passenger-driver" style="display:none">
-                        <h3>Motorista a caminho</h3>
-                        <div class="driver-card">
-                            <div class="driver-avatar" id="driver-avatar">C</div>
-                            <div class="driver-info">
-                                <div class="driver-name" id="driver-name">Carlos Silva</div>
-                                <div class="driver-car" id="driver-car">Toyota Corolla · LD-1234-AB</div>
-                                <div class="driver-rating">⭐ 4.8</div>
-                            </div>
-                        </div>
-                        <div style="display:flex;gap:8px">
-                            <button class="btn btn-outline" style="flex:1" onclick="alert('A ligar...')">📞 Ligar</button>
-                            <button class="btn btn-primary" style="flex:1" onclick="completeRide()">✅ Finalizar</button>
-                        </div>
-                    </div>
-                    <div id="passenger-complete" style="display:none">
-                        <div class="ride-status">
-                            <div class="status-animation">🎉</div>
-                            <div class="status-text">Corrida concluída!</div>
-                            <div class="price-display" style="margin:16px 0">
-                                <div class="price-label">Total pago</div>
-                                <div class="price-value" id="complete-price">0 Kz</div>
-                            </div>
-                            <p style="font-size:13px;color:var(--light);margin-bottom:16px">Pagamento em dinheiro ao motorista</p>
-                            <button class="btn btn-primary" onclick="resetPassenger()">Pedir Nova Corrida</button>
-                        </div>
-                    </div>
-                </div>
+        <div class="menu-section">
+            <div class="menu-section-title">Conta</div>
+            <div class="menu-list">
+                <div class="menu-row" onclick="showEditProfile()"><div class="m-icon green">👤</div><div class="m-label">Editar Perfil</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon blue">💳</div><div class="m-label">Métodos de Pagamento</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon yellow">📍</div><div class="m-label">Locais Guardados</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon green">🎁</div><div class="m-label">Código Promocional</div><div class="m-arrow">›</div></div>
             </div>
         </div>
-        <div class="tabs">
-            <button class="tab active" onclick="showPassengerTab('home')"><span class="tab-icon">🏠</span>Início</button>
-            <button class="tab" onclick="showPassengerTab('history')"><span class="tab-icon">📋</span>Histórico</button>
-            <button class="tab" onclick="showPassengerTab('profile')"><span class="tab-icon">👤</span>Perfil</button>
+        <div class="menu-section">
+            <div class="menu-section-title">Suporte</div>
+            <div class="menu-list">
+                <div class="menu-row" onclick="showHelpCenter()"><div class="m-icon blue">❓</div><div class="m-label">Centro de Ajuda</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon gray">📄</div><div class="m-label">Termos de Serviço</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon gray">🔒</div><div class="m-label">Política de Privacidade</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon red">🚨</div><div class="m-label">Reportar Problema</div><div class="m-arrow">›</div></div>
+            </div>
+        </div>
+        <button class="btn btn-outline" style="margin-top:16px;border-color:var(--error);color:var(--error)" onclick="doLogout()">Sair da Conta</button>
+    </div>
+</div>
+
+<!-- ==================== SCREEN: DRIVER ==================== -->
+<div class="screen" id="s-driver">
+    <div class="app-header">
+        <div style="font-size:20px;font-weight:800;color:var(--primary)">UA</div>
+        <h1 style="flex:1;margin-left:8px">Motorista</h1>
+        <div class="header-btn" onclick="goScreen('s-driver-profile')">👤</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px" id="d-content">
+        <!-- Online Toggle -->
+        <div class="online-bar">
+            <div class="status">
+                <span id="d-status-text">Offline</span>
+                <small id="d-status-sub">Ative para receber pedidos</small>
+            </div>
+            <div class="toggle" id="d-toggle" onclick="toggleDriverOnline()"></div>
+        </div>
+        <!-- Stats -->
+        <div class="stats-row">
+            <div class="stat-box"><div class="stat-val" id="d-earnings">0</div><div class="stat-lbl">Ganhos (Kz)</div></div>
+            <div class="stat-box"><div class="stat-val" id="d-rides">0</div><div class="stat-lbl">Corridas</div></div>
+            <div class="stat-box"><div class="stat-val">4.8</div><div class="stat-lbl">Avaliação</div></div>
+        </div>
+        <!-- Waiting -->
+        <div id="d-waiting" style="display:none;text-align:center;padding:40px 20px">
+            <div style="font-size:48px;margin-bottom:16px;opacity:0.5">📡</div>
+            <div style="font-size:16px;color:var(--light)">Aguardando pedidos...</div>
+            <div style="font-size:13px;color:var(--gray2);margin-top:8px">Receberá notificações de novos pedidos</div>
+        </div>
+        <!-- Active Ride -->
+        <div id="d-active-ride" style="display:none">
+            <div style="font-size:14px;color:var(--light);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">Corrida Ativa</div>
+            <div class="driver-card" id="d-ride-card"></div>
+            <div style="background:var(--dark2);border-radius:var(--radius-sm);padding:16px;margin-bottom:12px;border:1px solid var(--gray)">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                    <span style="color:var(--light);font-size:13px">Destino</span>
+                    <span style="font-weight:500" id="d-ride-to">Aeroporto</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                    <span style="color:var(--light);font-size:13px">Distância</span>
+                    <span style="font-weight:500" id="d-ride-dist">12.3 km</span>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                    <span style="color:var(--light);font-size:13px">Ganho</span>
+                    <span style="font-weight:700;color:var(--primary);font-size:18px" id="d-ride-earning">2,516 Kz</span>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-danger" onclick="cancelDriverRide()">Cancelar</button>
+                <button class="btn btn-primary" onclick="completeDriverRide()">Finalizar Viagem</button>
+            </div>
         </div>
     </div>
+    <div class="tab-bar">
+        <button class="tab-item active" onclick="dTab(this,'dashboard')"><span class="tab-icon">📊</span><span class="tab-label">Dashboard</span></button>
+        <button class="tab-item" onclick="dTab(this,'earnings')"><span class="tab-icon">💰</span><span class="tab-label">Ganhos</span></button>
+        <button class="tab-item" onclick="goScreen('s-driver-profile')"><span class="tab-icon">👤</span><span class="tab-label">Perfil</span></button>
+    </div>
+</div>
 
-    <!-- DRIVER SCREEN -->
-    <div class="screen" id="screen-driver">
-        <div class="app-header">
-            <h2>🚖 Uber Angola</h2>
-            <button class="header-btn" onclick="showDriverProfile()">👤</button>
+<!-- ==================== SCREEN: DRIVER PROFILE ==================== -->
+<div class="screen" id="s-driver-profile">
+    <div class="app-header">
+        <div class="header-btn" onclick="goScreen('s-driver')">←</div>
+        <h1>Perfil</h1>
+        <div></div>
+    </div>
+    <div class="profile-content">
+        <div class="profile-hero">
+            <div class="profile-avatar" id="dp-avatar">C</div>
+            <div class="profile-name" id="dp-name">Carlos</div>
+            <div class="profile-phone" id="dp-phone">+244 9XX XXX XXX</div>
+            <div class="profile-rating">⭐ 4.8 · 328 corridas</div>
         </div>
-        <div class="dashboard" id="driver-dashboard">
-            <div class="online-toggle">
-                <div>
-                    <div style="font-weight:600" id="driver-status-text">Offline</div>
-                    <div style="font-size:13px;color:var(--light)">Status do motorista</div>
-                </div>
-                <div class="toggle-switch" id="online-toggle" onclick="toggleOnline()"></div>
+        <div class="menu-section">
+            <div class="menu-section-title">Veículo</div>
+            <div class="menu-list">
+                <div class="menu-row"><div class="m-icon green">🚗</div><div class="m-label">Toyota Corolla · 2020</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon blue">🔢</div><div class="m-label">LD-1234-AB</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon yellow">📄</div><div class="m-label">Carta de Condução</div><div class="m-arrow">›</div></div>
             </div>
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="driver-earnings">0</div>
-                    <div class="stat-label">Ganhos Hoje (Kz)</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="driver-rides">0</div>
-                    <div class="stat-label">Corridas</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">4.8</div>
-                    <div class="stat-label">Avaliação</div>
-                </div>
+        </div>
+        <div class="menu-section">
+            <div class="menu-section-title">Conta</div>
+            <div class="menu-list">
+                <div class="menu-row"><div class="m-icon green">👤</div><div class="m-label">Editar Perfil</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon blue">🏦</div><div class="m-label">Dados Bancários</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon yellow">📊</div><div class="m-label">Relatórios</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon gray">⚙️</div><div class="m-label">Preferências</div><div class="m-arrow">›</div></div>
             </div>
-            
-            <div class="card" id="driver-waiting" style="display:none">
-                <p style="color:var(--light);text-align:center">📡 Aguardando pedidos...</p>
+        </div>
+        <button class="btn btn-outline" style="margin-top:16px;border-color:var(--error);color:var(--error)" onclick="doLogout()">Sair da Conta</button>
+    </div>
+</div>
+
+<!-- ==================== SCREEN: ADMIN DASHBOARD ==================== -->
+<div class="screen" id="s-admin">
+    <div class="app-header">
+        <div style="font-size:20px;font-weight:800;color:var(--primary)">UA</div>
+        <h1 style="flex:1;margin-left:8px">Admin Dashboard</h1>
+        <div class="header-btn" onclick="toggleNotifications()">🔔</div>
+        <div class="header-btn" onclick="goScreen('s-admin-settings')">⚙️</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px">
+        <!-- Stats Grid -->
+        <div class="admin-grid">
+            <div class="admin-card">
+                <h3>Corridas Hoje</h3>
+                <div class="value" id="admin-rides-today">127</div>
+                <div class="change">+12% vs ontem</div>
             </div>
-            
-            <div class="card card-highlight" id="driver-request" style="display:none">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                    <h3>Novo Pedido</h3>
-                    <span class="badge badge-warning" id="request-timer">15s</span>
-                </div>
-                <div style="margin-bottom:12px">
-                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                        <span class="history-dot" style="background:var(--primary)"></span>
-                        <span id="request-from">Origem</span>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:8px">
-                        <span class="history-dot" style="background:var(--error)"></span>
-                        <span id="request-to">Destino</span>
-                    </div>
-                </div>
-                <div style="text-align:center;margin-bottom:12px">
-                    <div style="font-size:13px;color:var(--light)">Ganho:</div>
-                    <div style="font-size:28px;font-weight:700;color:var(--primary)" id="request-earning">0 Kz</div>
-                </div>
-                <div style="display:flex;gap:12px">
-                    <button class="btn btn-danger" style="flex:1" onclick="declineRide()">Rejeitar</button>
-                    <button class="btn btn-primary" style="flex:1" onclick="acceptRide()">Aceitar</button>
-                </div>
+            <div class="admin-card">
+                <h3>Motoristas Online</h3>
+                <div class="value" id="admin-drivers-online">43</div>
+                <div class="change">+5% vs hora anterior</div>
             </div>
-            
-            <div class="card" id="driver-active" style="display:none">
-                <h3 style="margin-bottom:12px">Corrida Ativa</h3>
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-                    <div class="driver-avatar" style="width:40px;height:40px;font-size:16px">M</div>
-                    <div>
-                        <div style="font-weight:500">Maria Silva</div>
-                        <div style="font-size:13px;color:var(--light)">⭐ 4.8</div>
-                    </div>
-                </div>
-                <div style="display:flex;gap:8px">
-                    <button class="btn btn-primary" style="flex:1" onclick="completeDriverRide()">Finalizar Viagem</button>
-                    <button class="btn btn-danger" style="flex:1" onclick="cancelDriverRide()">Cancelar</button>
-                </div>
+            <div class="admin-card">
+                <h3>Receita Hoje</h3>
+                <div class="value" id="admin-revenue">1.2M</div>
+                <div class="change">+18% vs ontem</div>
+            </div>
+            <div class="admin-card">
+                <h3>Avaliação Média</h3>
+                <div class="value">4.7</div>
+                <div class="change">Estável</div>
             </div>
         </div>
         
-        <div class="tabs">
-            <button class="tab active" onclick="showDriverTab('dashboard')"><span class="tab-icon">📊</span>Dashboard</button>
-            <button class="tab" onclick="showDriverTab('earnings')"><span class="tab-icon">💰</span>Ganhos</button>
-            <button class="tab" onclick="showDriverTab('profile')"><span class="tab-icon">👤</span>Perfil</button>
-        </div>
-    </div>
-
-    <!-- RIDE REQUEST POPUP (for driver) -->
-    <div class="ride-popup" id="ride-popup">
-        <div class="ride-popup-content">
-            <div class="ride-popup-header">
-                <h3>Novo Pedido!</h3>
-                <span class="ride-popup-timer" id="popup-timer">15</span>
+        <!-- Chart -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3>Corridas por Hora</h3>
+                <span class="badge badge-green">Hoje</span>
             </div>
-            <div style="margin-bottom:16px">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                    <span class="history-dot" style="background:var(--primary)"></span>
-                    <span id="popup-from">Ingombota</span>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px">
-                    <span class="history-dot" style="background:var(--error)"></span>
-                    <span id="popup-to">Aeroporto</span>
-                </div>
+            <div class="chart-bar" id="admin-chart">
+                <!-- Chart bars will be generated by JS -->
             </div>
-            <div style="text-align:center;margin-bottom:16px">
-                <div style="font-size:13px;color:var(--light)">O seu ganho:</div>
-                <div style="font-size:32px;font-weight:700;color:var(--primary)" id="popup-earning">2,516 Kz</div>
-            </div>
-            <div style="display:flex;gap:12px">
-                <button class="btn btn-danger" style="flex:1" onclick="declineFromPopup()">Rejeitar</button>
-                <button class="btn btn-primary" style="flex:1" onclick="acceptFromPopup()">Aceitar</button>
+            <div class="chart-labels" id="admin-chart-labels">
+                <!-- Chart labels will be generated by JS -->
             </div>
         </div>
+        
+        <!-- Active Rides -->
+        <div style="margin-bottom:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <h3 style="font-size:16px">Corridas Ativas</h3>
+                <span class="badge badge-green" id="admin-active-count">8</span>
+            </div>
+            <div id="admin-active-rides">
+                <!-- Active rides will be generated by JS -->
+            </div>
+        </div>
+        
+        <!-- Driver List -->
+        <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <h3 style="font-size:16px">Motoristas Recentes</h3>
+                <span style="font-size:13px;color:var(--primary);cursor:pointer">Ver todos</span>
+            </div>
+            <div class="driver-list" id="admin-driver-list">
+                <!-- Driver list will be generated by JS -->
+            </div>
+        </div>
     </div>
+    <div class="tab-bar">
+        <button class="tab-item active" onclick="adminTab(this,'dashboard')"><span class="tab-icon">📊</span><span class="tab-label">Dashboard</span></button>
+        <button class="tab-item" onclick="adminTab(this,'drivers')"><span class="tab-icon">🚖</span><span class="tab-label">Motoristas</span></button>
+        <button class="tab-item" onclick="adminTab(this,'rides')"><span class="tab-icon">🚗</span><span class="tab-label">Corridas</span></button>
+        <button class="tab-item" onclick="adminTab(this,'settings')"><span class="tab-icon">⚙️</span><span class="tab-label">Config</span></button>
+    </div>
+</div>
 
-    <script>
-        // ========== DATA ==========
-        const LUANDA = { lat: -8.8399, lng: 13.2894 };
-        const LOCATIONS = {
-            'Aeroporto 4 de Fevereiro': { lat: -8.8734, lng: 13.2572 },
-            'Kinaxixi': { lat: -8.8167, lng: 13.2333 },
-            'Ingombota': { lat: -8.8333, lng: 13.2500 },
-            'Maianga': { lat: -8.8333, lng: 13.2833 },
-            'Samba': { lat: -8.8500, lng: 13.2667 },
-            'Ilha de Luanda': { lat: -8.7833, lng: 13.2667 },
-            'Marginal': { lat: -8.8167, lng: 13.2667 },
-            'Miramar': { lat: -8.8000, lng: 13.2000 },
-            'Kilamba': { lat: -8.9333, lng: 13.3000 },
-            'Talatona': { lat: -8.9000, lng: 13.2000 },
-        };
-        const DRIVERS = [
-            { name: 'Carlos Silva', car: 'Toyota Corolla', plate: 'LD-1234-AB', rating: 4.8, lat: -8.835, lng: 13.260 },
-            { name: 'João Santos', car: 'Hyundai Accent', plate: 'LD-5678-CD', rating: 4.6, lat: -8.825, lng: 13.245 },
-            { name: 'Manuel Ferreira', car: 'Kia Picanto', plate: 'LD-9012-EF', rating: 4.9, lat: -8.845, lng: 13.270 },
-            { name: 'António Costa', car: 'Toyota Prado', plate: 'LD-3456-GH', rating: 4.7, lat: -8.820, lng: 13.280 },
-            { name: 'Pedro Neto', car: 'Nissan Sentra', plate: 'LD-7890-IJ', rating: 4.5, lat: -8.850, lng: 13.250 },
-        ];
-        const PRICING = { base: 500, perKm: 200, perMin: 50, min: 300, commission: 0.15 };
+<!-- ==================== SCREEN: ADMIN SETTINGS ==================== -->
+<div class="screen" id="s-admin-settings">
+    <div class="app-header">
+        <div class="header-btn" onclick="goScreen('s-admin')">←</div>
+        <h1>Configurações</h1>
+        <div></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px">
+        <div class="menu-section">
+            <div class="menu-section-title">Preços</div>
+            <div class="menu-list">
+                <div class="menu-row"><div class="m-icon green">💰</div><div class="m-label">Tarifa Base: 500 Kz</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon blue">📏</div><div class="m-label">Por km: 200 Kz</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon yellow">⏱️</div><div class="m-label">Por minuto: 50 Kz</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon red">📊</div><div class="m-label">Comissão: 15%</div><div class="m-arrow">›</div></div>
+            </div>
+        </div>
+        <div class="menu-section">
+            <div class="menu-section-title">Sistema</div>
+            <div class="menu-list">
+                <div class="menu-row"><div class="m-icon blue">🔔</div><div class="m-label">Notificações</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon gray">🛡️</div><div class="m-label">Segurança</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon green">📊</div><div class="m-label">Relatórios</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon yellow">💳</div><div class="m-label">Pagamentos</div><div class="m-arrow">›</div></div>
+            </div>
+        </div>
+        <div class="menu-section">
+            <div class="menu-section-title">Conta</div>
+            <div class="menu-list">
+                <div class="menu-row"><div class="m-icon green">👤</div><div class="m-label">Perfil Admin</div><div class="m-arrow">›</div></div>
+                <div class="menu-row"><div class="m-icon gray">🔒</div><div class="m-label">Segurança da Conta</div><div class="m-arrow">›</div></div>
+            </div>
+        </div>
+        <button class="btn btn-outline" style="margin-top:16px;border-color:var(--error);color:var(--error)" onclick="doLogout()">Sair da Conta</button>
+    </div>
+</div>
 
-        // ========== STATE ==========
-        let state = {
-            user: null,
-            role: 'passenger',
-            selectedRole: 'passenger',
-            passengerLocation: { ...LUANDA },
-            pickupCoords: null,
-            dropoffCoords: null,
-            currentRide: null,
-            isOnline: false,
-            rideHistory: [],
-            driverEarnings: 0,
-            driverRides: 0,
-        };
+<!-- ==================== POPUP: RIDE REQUEST ==================== -->
+<div class="popup-overlay" id="ride-popup">
+    <div class="popup-card">
+        <div class="popup-header">
+            <div style="font-size:18px;font-weight:700">Novo Pedido</div>
+            <div class="popup-timer" id="popup-timer">15</div>
+        </div>
+        <div class="route-display">
+            <div class="route-point">
+                <div class="route-dot green"></div>
+                <div class="route-text"><span id="popup-from">Ingombota</span><small>Partida</small></div>
+            </div>
+            <div class="route-line"></div>
+            <div class="route-point">
+                <div class="route-dot red"></div>
+                <div class="route-text"><span id="popup-to">Aeroporto</span><small>Destino</small></div>
+            </div>
+        </div>
+        <div class="popup-price">
+            <div class="pp-label">O seu ganho</div>
+            <div class="pp-value" id="popup-earning">2,516 Kz</div>
+        </div>
+        <div style="display:flex;gap:12px">
+            <button class="btn btn-danger" style="flex:1" onclick="declinePopup()">Rejeitar</button>
+            <button class="btn btn-primary" style="flex:1" onclick="acceptPopup()">Aceitar</button>
+        </div>
+    </div>
+</div>
 
-        let mapPassenger = null;
-        let driverMarkers = [];
-        let currentRideInterval = null;
+<!-- ==================== SCREEN: PASSENGER HISTORY ==================== -->
+<div class="screen" id="s-history">
+    <div class="app-header">
+        <div class="header-btn" onclick="goScreen('s-passenger')">←</div>
+        <h1>Histórico</h1>
+        <div></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px" id="history-list"></div>
+    <div class="tab-bar">
+        <button class="tab-item" onclick="goScreen('s-passenger')"><span class="tab-icon">🏠</span><span class="tab-label">Início</span></button>
+        <button class="tab-item active"><span class="tab-icon">📋</span><span class="tab-label">Histórico</span></button>
+        <button class="tab-item" onclick="goScreen('s-passenger-profile')"><span class="tab-icon">👤</span><span class="tab-label">Perfil</span></button>
+    </div>
+</div>
 
-        // ========== AUTH ==========
-        function requestOTP() {
-            const phone = document.getElementById('phone-input').value;
-            if (phone.length < 9) { alert('Número inválido'); return; }
-            document.getElementById('login-step1').style.display = 'none';
-            document.getElementById('login-step2').style.display = 'block';
-            alert('Código OTP enviado para ' + phone + '\n\n(Demo: use 1234)');
-        }
+<!-- ==================== SCREEN: DRIVER EARNINGS ==================== -->
+<div class="screen" id="s-earnings">
+    <div class="app-header">
+        <div class="header-btn" onclick="goScreen('s-driver')">←</div>
+        <h1>Ganhos</h1>
+        <div></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px">
+        <div class="earnings-hero">
+            <div class="earn-label">Total Acumulado</div>
+            <div class="earn-value" id="earn-total">0 Kz</div>
+            <div class="earn-sub">100% dos ganhos são seus</div>
+        </div>
+        <div class="stats-row">
+            <div class="stat-box"><div class="stat-val" id="earn-today">0</div><div class="stat-lbl">Hoje</div></div>
+            <div class="stat-box"><div class="stat-val" id="earn-week">0</div><div class="stat-lbl">Semana</div></div>
+            <div class="stat-box"><div class="stat-val" id="earn-rides">0</div><div class="stat-lbl">Corridas</div></div>
+        </div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:12px">Como funciona</div>
+        <div style="background:var(--dark2);border-radius:var(--radius-sm);padding:16px;border:1px solid var(--gray)">
+            <div style="display:flex;gap:12px;margin-bottom:12px"><span>💰</span><span style="font-size:14px">Recebes <b>85%</b> do valor da corrida</span></div>
+            <div style="display:flex;gap:12px;margin-bottom:12px"><span>📊</span><span style="font-size:14px">Comissão da plataforma: <b>15%</b></span></div>
+            <div style="display:flex;gap:12px"><span>💳</span><span style="font-size:14px">Pagamento em dinheiro ou Multicaixa Express</span></div>
+        </div>
+    </div>
+    <div class="tab-bar">
+        <button class="tab-item" onclick="goScreen('s-driver')"><span class="tab-icon">📊</span><span class="tab-label">Dashboard</span></button>
+        <button class="tab-item active"><span class="tab-icon">💰</span><span class="tab-label">Ganhos</span></button>
+        <button class="tab-item" onclick="goScreen('s-driver-profile')"><span class="tab-icon">👤</span><span class="tab-label">Perfil</span></button>
+    </div>
+</div>
 
-        function verifyOTP() {
-            const otp = document.getElementById('otp-input').value;
-            if (otp !== '1234') { alert('Código inválido (use 1234)'); return; }
-            document.getElementById('login-step2').style.display = 'none';
-            document.getElementById('login-step3').style.display = 'block';
-        }
+<!-- ==================== NOTIFICATION PANEL ==================== -->
+<div class="notification-panel" id="notification-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="font-size:18px">Notificações</h2>
+        <div class="header-btn" onclick="toggleNotifications()">✕</div>
+    </div>
+    <div id="notification-list">
+        <div class="notification-item">
+            <div class="time">Agora</div>
+            <div class="message">Bem-vindo ao Uber Angola! 🎉</div>
+        </div>
+        <div class="notification-item">
+            <div class="time">Há 5 min</div>
+            <div class="message">Promoção: Primeira corrida com 20% de desconto</div>
+        </div>
+        <div class="notification-item">
+            <div class="time">Há 1 hora</div>
+            <div class="message">Novos motoristas disponíveis na sua zona</div>
+        </div>
+    </div>
+</div>
 
-        function selectRole(role) {
-            state.selectedRole = role;
-            document.getElementById('role-passenger').style.background = role === 'passenger' ? 'var(--primary)' : 'transparent';
-            document.getElementById('role-passenger').style.color = role === 'passenger' ? 'var(--white)' : 'var(--primary)';
-            document.getElementById('role-driver').style.background = role === 'driver' ? 'var(--primary)' : 'transparent';
-            document.getElementById('role-driver').style.color = role === 'driver' ? 'var(--white)' : 'var(--primary)';
-        }
+<!-- ==================== MODAL: EMERGENCY ==================== -->
+<div class="popup-overlay" id="emergency-modal">
+    <div class="popup-card">
+        <div class="popup-header">
+            <div style="font-size:18px;font-weight:700">🚨 Emergência</div>
+        </div>
+        <div style="text-align:center;padding:20px 0">
+            <div style="font-size:48px;margin-bottom:16px">🚔</div>
+            <div style="font-size:16px;font-weight:600;margin-bottom:8px">Contactar Emergência</div>
+            <div style="font-size:14px;color:var(--light);margin-bottom:20px">A partilhar a sua localização com as autoridades</div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+                <button class="btn btn-danger" onclick="callEmergency('112')">📞 Ligar 112 (Emergência)</button>
+                <button class="btn btn-outline" onclick="callEmergency('police')">🚔 Polícia</button>
+                <button class="btn btn-outline" onclick="callEmergency('ambulance')">🚑 Ambulância</button>
+                <button class="btn btn-ghost" onclick="closeEmergency()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-        function register() {
-            const name = document.getElementById('name-input').value;
-            if (!name) { alert('Insira o seu nome'); return; }
-            state.user = { name, phone: document.getElementById('phone-input').value };
-            state.role = state.selectedRole;
-            
-            if (state.role === 'passenger') {
-                showScreen('screen-passenger');
-                initPassengerMap();
-                document.getElementById('greeting').textContent = 'Olá, ' + name.split(' ')[0];
-            } else {
-                showScreen('screen-driver');
-                initDriverMap();
-            }
-        }
-
-        function showScreen(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-        }
-
-        // ========== MAPS ==========
-        function initPassengerMap() {
-            if (mapPassenger) return;
-            mapPassenger = L.map('map-passenger').setView([LUANDA.lat, LUANDA.lng], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapPassenger);
-            
-            // Add driver markers
-            DRIVERS.forEach(d => {
-                const marker = L.circleMarker([d.lat, d.lng], { radius: 8, color: '#fff', fillColor: '#00B140', fillOpacity: 1, weight: 2 })
-                    .addTo(mapPassenger)
-                    .bindPopup('<b>' + d.name + '</b><br>' + d.car + '<br>⭐ ' + d.rating);
-                driverMarkers.push(marker);
-            });
-        }
-
-        function initDriverMap() {
-            // Driver doesn't need a map in this demo
-        }
-
-        // ========== PASSENGER ==========
-        function showSearch() {
-            document.getElementById('passenger-default').style.display = 'none';
-            document.getElementById('passenger-search').style.display = 'block';
-            renderLocations(Object.keys(LOCATIONS));
-        }
-
-        function hideSearch() {
-            document.getElementById('passenger-search').style.display = 'none';
-            document.getElementById('passenger-default').style.display = 'block';
-        }
-
-        function filterLocations() {
-            const query = document.getElementById('search-input').value.toLowerCase();
-            const filtered = Object.keys(LOCATIONS).filter(n => n.toLowerCase().includes(query));
-            renderLocations(filtered);
-        }
-
-        function renderLocations(locations) {
-            const list = document.getElementById('location-list');
-            list.innerHTML = locations.map(name => `
-                <div class="location-item" onclick="selectLocation('${name}')">
-                    <div class="location-icon">📍</div>
-                    <div class="location-info">
-                        <div class="location-name">${name}</div>
-                    </div>
+<!-- ==================== MODAL: HELP CENTER ==================== -->
+<div class="popup-overlay" id="help-modal">
+    <div class="popup-card" style="max-height:80vh;overflow-y:auto">
+        <div class="popup-header">
+            <div style="font-size:18px;font-weight:700">❓ Centro de Ajuda</div>
+            <div class="header-btn" onclick="closeHelpCenter()">✕</div>
+        </div>
+        <div style="margin-top:16px">
+            <div class="help-item">
+                <div class="help-question" onclick="toggleHelpItem(this)">
+                    <span>Como pedir uma corrida?</span>
+                    <span class="help-arrow">▼</span>
                 </div>
-            `).join('');
-        }
+                <div class="help-answer">
+                    Toque em "Escolher Destino", selecione o destino, confirme o preço e toque em "Pedir Corrida". Um motorista será encontrado automaticamente.
+                </div>
+            </div>
+            <div class="help-item">
+                <div class="help-question" onclick="toggleHelpItem(this)">
+                    <span>Como funciona o pagamento?</span>
+                    <span class="help-arrow">▼</span>
+                </div>
+                <div class="help-answer">
+                    O pagamento é feito diretamente ao motorista. Pode pagar em dinheiro ou via Multicaixa Express. A plataforma não retém o dinheiro.
+                </div>
+            </div>
+            <div class="help-item">
+                <div class="help-question" onclick="toggleHelpItem(this)">
+                    <span>Como cancelar uma corrida?</span>
+                    <span class="help-arrow">▼</span>
+                </div>
+                <div class="help-answer">
+                    Pode cancelar a qualquer momento antes do motorista chegar. Após o início da viagem, há uma taxa de cancelamento.
+                </div>
+            </div>
+            <div class="help-item">
+                <div class="help-question" onclick="toggleHelpItem(this)">
+                    <span>Como me torno motorista?</span>
+                    <span class="help-arrow">▼</span>
+                </div>
+                <div class="help-answer">
+                    Registe-se como motorista, submeta os documentos necessários (carta de condução, documento de identidade) e aguarde aprovação.
+                </div>
+            </div>
+            <div class="help-item">
+                <div class="help-question" onclick="toggleHelpItem(this)">
+                    <span>Como reportar um problema?</span>
+                    <span class="help-arrow">▼</span>
+                </div>
+                <div class="help-answer">
+                    Vá a Perfil > Reportar Problema ou contacte-nos via WhatsApp: +244 9XX XXX XXX.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-        function selectLocation(name) {
-            const coords = LOCATIONS[name];
-            state.dropoffCoords = coords;
-            state.pickupCoords = { ...state.passengerLocation };
-            
-            const distance = haversine(state.pickupCoords, coords);
-            const duration = Math.ceil(distance * 2);
-            const price = Math.max(PRICING.base + (distance * PRICING.perKm) + (duration * PRICING.perMin), PRICING.min);
-            
-            document.getElementById('confirm-from').textContent = 'Localização atual';
-            document.getElementById('confirm-to').textContent = name;
-            document.getElementById('confirm-price').textContent = formatPrice(price);
-            document.getElementById('confirm-details').textContent = distance.toFixed(1) + ' km · ' + duration + ' min';
-            
-            document.getElementById('passenger-search').style.display = 'none';
-            document.getElementById('passenger-confirm').style.display = 'block';
-            
-            state.currentPrice = price;
-        }
+<script>
+// ==================== STATE ====================
+const S = {
+    user: null, role: 'passenger', phone: '', name: '',
+    passengerLoc: { lat: -8.8399, lng: 13.2894 },
+    pickup: null, dropoff: null, dropoffName: '',
+    price: 0, payment: 'cash',
+    driverOnline: false, driverEarnings: 0, driverRides: 0,
+    currentRide: null, history: [],
+    mapP: null, driverMarkers: [],
+    popupInterval: null, rideTimer: null,
+    notifications: [],
+    rating: 0,
+    promoApplied: false,
+};
 
-        function hideConfirm() {
-            document.getElementById('passenger-confirm').style.display = 'none';
-            document.getElementById('passenger-default').style.display = 'block';
-        }
+const LOC = {
+    'Aeroporto 4 de Fevereiro': { lat: -8.8734, lng: 13.2572, icon: '✈️' },
+    'Kinaxixi': { lat: -8.8167, lng: 13.2333, icon: '🏛️' },
+    'Ingombota': { lat: -8.8333, lng: 13.2500, icon: '🏢' },
+    'Maianga': { lat: -8.8333, lng: 13.2833, icon: '🏘️' },
+    'Samba': { lat: -8.8500, lng: 13.2667, icon: '🏖️' },
+    'Ilha de Luanda': { lat: -8.7833, lng: 13.2667, icon: '🏝️' },
+    'Marginal': { lat: -8.8167, lng: 13.2667, icon: '🌊' },
+    'Miramar': { lat: -8.8000, lng: 13.2000, icon: '🏰' },
+    'Kilamba': { lat: -8.9333, lng: 13.3000, icon: '🏗️' },
+    'Talatona': { lat: -8.9000, lng: 13.2000, icon: '🏬' },
+    'Rangel': { lat: -8.8333, lng: 13.2333, icon: '🏘️' },
+    'Maculusso': { lat: -8.8333, lng: 13.2667, icon: '🏖️' },
+    'Catete': { lat: -8.8500, lng: 13.2500, icon: '🏘️' },
+    'Corimba': { lat: -8.8667, lng: 13.2333, icon: '🏖️' },
+    'Zango': { lat: -8.9167, lng: 13.3333, icon: '🏘️' },
+};
 
-        function requestRide() {
-            document.getElementById('passenger-confirm').style.display = 'none';
-            document.getElementById('passenger-waiting').style.display = 'block';
-            
-            // Simulate driver found after 3 seconds
-            setTimeout(() => {
-                const driver = DRIVERS[Math.floor(Math.random() * DRIVERS.length)];
-                state.currentDriver = driver;
-                document.getElementById('driver-name').textContent = driver.name;
-                document.getElementById('driver-car').textContent = driver.car + ' · ' + driver.plate;
-                document.getElementById('driver-avatar').textContent = driver.name[0];
-                
-                document.getElementById('passenger-waiting').style.display = 'none';
-                document.getElementById('passenger-driver').style.display = 'block';
-            }, 3000);
-        }
+const DRIVERS_DATA = [
+    { name: 'Carlos Silva', car: 'Toyota Corolla', plate: 'LD-1234-AB', rating: 4.8, lat: -8.835, lng: 13.260, status: 'online' },
+    { name: 'João Santos', car: 'Hyundai Accent', plate: 'LD-5678-CD', rating: 4.6, lat: -8.825, lng: 13.245, status: 'online' },
+    { name: 'Manuel Ferreira', car: 'Kia Picanto', plate: 'LD-9012-EF', rating: 4.9, lat: -8.845, lng: 13.270, status: 'busy' },
+    { name: 'António Costa', car: 'Toyota Prado', plate: 'LD-3456-GH', rating: 4.7, lat: -8.820, lng: 13.280, status: 'online' },
+    { name: 'Pedro Neto', car: 'Nissan Sentra', plate: 'LD-7890-IJ', rating: 4.5, lat: -8.850, lng: 13.250, status: 'offline' },
+    { name: 'Ricardo Mendes', car: 'Honda Civic', plate: 'LD-1122-KL', rating: 4.8, lat: -8.830, lng: 13.255, status: 'online' },
+    { name: 'Paulo Jorge', car: 'Toyota Hilux', plate: 'LD-3344-MN', rating: 4.4, lat: -8.840, lng: 13.240, status: 'online' },
+];
 
-        function completeRide() {
-            document.getElementById('complete-price').textContent = formatPrice(state.currentPrice);
-            document.getElementById('passenger-driver').style.display = 'none';
-            document.getElementById('passenger-complete').style.display = 'block';
-            
-            // Add to history
-            state.rideHistory.unshift({
-                from: 'Localização atual',
-                to: document.getElementById('confirm-to').textContent,
-                price: state.currentPrice,
-                driver: state.currentDriver?.name || 'Motorista',
-                time: new Date().toLocaleTimeString('pt-AO'),
-            });
-        }
+const ADMIN_RIDES = [
+    { id: 1, passenger: 'Maria Silva', driver: 'Carlos Silva', from: 'Ingombota', to: 'Aeroporto', price: 3200, status: 'active', time: '14:30' },
+    { id: 2, passenger: 'Ana Santos', driver: 'João Santos', from: 'Kilamba', to: 'Talatona', price: 2800, status: 'active', time: '14:25' },
+    { id: 3, passenger: 'José Ferreira', driver: 'Manuel Ferreira', from: 'Samba', to: 'Miramar', price: 1950, status: 'completed', time: '14:15' },
+    { id: 4, passenger: 'Sofia Costa', driver: 'António Costa', from: 'Maianga', to: 'Zango', price: 4100, status: 'active', time: '14:10' },
+    { id: 5, passenger: 'Pedro Neto', driver: 'Pedro Neto', from: 'Marginal', to: 'Ilha de Luanda', price: 1200, status: 'completed', time: '14:00' },
+];
 
-        function cancelRide() {
-            document.getElementById('passenger-waiting').style.display = 'none';
-            document.getElementById('passenger-default').style.display = 'block';
-        }
+// ==================== LOADING ====================
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        document.getElementById('loading-screen').classList.add('hidden');
+        document.getElementById('s-login').classList.add('active');
+    }, 1500);
+});
 
-        function resetPassenger() {
-            document.getElementById('passenger-complete').style.display = 'none';
-            document.getElementById('passenger-default').style.display = 'block';
-            state.currentPrice = 0;
-            state.currentDriver = null;
-        }
+// ==================== NAVIGATION ====================
+function goScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (id === 's-passenger' && !S.mapP) initMap();
+    if (id === 's-history') renderHistory();
+    if (id === 's-earnings') renderEarnings();
+    if (id === 's-admin') initAdminDashboard();
+}
 
-        // ========== DRIVER ==========
-        function toggleOnline() {
-            state.isOnline = !state.isOnline;
-            const toggle = document.getElementById('online-toggle');
-            const text = document.getElementById('driver-status-text');
-            const waiting = document.getElementById('driver-waiting');
-            
-            toggle.classList.toggle('active', state.isOnline);
-            text.textContent = state.isOnline ? 'Online' : 'Offline';
-            text.style.color = state.isOnline ? 'var(--primary)' : 'var(--white)';
-            waiting.style.display = state.isOnline ? 'block' : 'none';
-            
-            if (state.isOnline) {
-                // Simulate incoming ride request
-                setTimeout(() => {
-                    if (state.isOnline && !state.currentRide) {
-                        showRideRequest();
-                    }
-                }, 4000);
-            }
-        }
+// ==================== AUTH ====================
+function goStep(n) {
+    document.querySelectorAll('.auth-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('auth-step' + n).classList.add('active');
+    if (n === 2) {
+        S.phone = document.getElementById('inp-phone').value;
+        document.getElementById('otp-phone-display').textContent = '+244 ' + S.phone;
+        document.querySelector('[data-otp="0"]').focus();
+    }
+}
 
-        function showRideRequest() {
-            const locations = Object.keys(LOCATIONS);
-            const from = locations[Math.floor(Math.random() * locations.length)];
-            const to = locations[Math.floor(Math.random() * locations.length)];
-            const distance = haversine(LOCATIONS[from], LOCATIONS[to]);
-            const earning = Math.floor(Math.max(PRICING.base + (distance * PRICING.perKm) + (Math.ceil(distance * 2) * PRICING.perMin), PRICING.min) * (1 - PRICING.commission));
-            
-            state.pendingRequest = { from, to, earning };
-            
-            document.getElementById('request-from').textContent = from;
-            document.getElementById('request-to').textContent = to;
-            document.getElementById('request-earning').textContent = formatPrice(earning);
-            
-            document.getElementById('driver-request').style.display = 'block';
-            document.getElementById('driver-waiting').style.display = 'none';
-            
-            // Timer
-            let time = 15;
-            document.getElementById('request-timer').textContent = time + 's';
-            currentRideInterval = setInterval(() => {
-                time--;
-                document.getElementById('request-timer').textContent = time + 's';
-                if (time <= 0) {
-                    clearInterval(currentRideInterval);
-                    declineRide();
-                }
-            }, 1000);
-        }
+// OTP inputs
+document.querySelectorAll('.otp-input').forEach((input, i, arr) => {
+    input.addEventListener('input', () => {
+        if (input.value.length === 1 && i < arr.length - 1) arr[i + 1].focus();
+        input.classList.toggle('filled', input.value.length === 1);
+        const otp = Array.from(arr).map(e => e.value).join('');
+        document.getElementById('btn-verify').disabled = otp.length !== 4;
+    });
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !input.value && i > 0) arr[i - 1].focus();
+    });
+});
 
-        function acceptRide() {
-            clearInterval(currentRideInterval);
-            state.currentRide = state.pendingRequest;
-            state.pendingRequest = null;
-            
-            document.getElementById('driver-request').style.display = 'none';
-            document.getElementById('driver-active').style.display = 'block';
-            document.getElementById('driver-waiting').style.display = 'none';
-        }
+function verifyOTP() {
+    const otp = Array.from(document.querySelectorAll('.otp-input')).map(e => e.value).join('');
+    if (otp !== '1234') { alert('Código inválido\n\nUse: 1234'); return; }
+    goStep(3);
+}
 
-        function declineRide() {
-            clearInterval(currentRideInterval);
-            state.pendingRequest = null;
-            
-            document.getElementById('driver-request').style.display = 'none';
-            document.getElementById('driver-waiting').style.display = state.isOnline ? 'block' : 'none';
-        }
+function resendOTP() {
+    alert('Código reenviado para +244 ' + S.phone + '\n\nUse: 1234');
+}
 
-        function completeDriverRide() {
-            const earning = state.currentRide.earning;
-            state.driverEarnings += earning;
-            state.driverRides++;
-            state.currentRide = null;
-            
-            document.getElementById('driver-earnings').textContent = formatPrice(state.driverEarnings);
-            document.getElementById('driver-rides').textContent = state.driverRides;
-            document.getElementById('driver-active').style.display = 'none';
-            document.getElementById('driver-waiting').style.display = state.isOnline ? 'block' : 'none';
-            
-            state.rideHistory.unshift({
-                from: 'Corrida concluída',
-                to: state.currentRide?.to || 'Destino',
-                price: earning,
-                driver: 'Você',
-                time: new Date().toLocaleTimeString('pt-AO'),
-            });
-            
-            alert('Viagem concluída! Ganhou ' + formatPrice(earning));
-            
-            // Get new request if online
-            if (state.isOnline) {
-                setTimeout(() => showRideRequest(), 2000);
-            }
-        }
+function selectRole(role) {
+    S.role = role;
+    document.getElementById('rc-passenger').classList.toggle('selected', role === 'passenger');
+    document.getElementById('rc-driver').classList.toggle('selected', role === 'driver');
+    document.getElementById('rc-admin').classList.toggle('selected', role === 'admin');
+}
 
-        function cancelDriverRide() {
-            state.currentRide = null;
-            document.getElementById('driver-active').style.display = 'none';
-            document.getElementById('driver-waiting').style.display = state.isOnline ? 'block' : 'none';
-        }
+function doRegister() {
+    S.name = document.getElementById('inp-name').value;
+    if (!S.name.trim()) { alert('Insira o seu nome'); return; }
+    S.user = { name: S.name, phone: S.phone };
+    if (S.role === 'passenger') {
+        goScreen('s-passenger');
+        document.getElementById('p-greeting').textContent = 'Olá, ' + S.name.split(' ')[0];
+    } else if (S.role === 'driver') {
+        goScreen('s-driver');
+        document.getElementById('dp-name').textContent = S.name;
+        document.getElementById('dp-phone').textContent = '+244 ' + S.phone;
+        document.getElementById('dp-avatar').textContent = S.name[0];
+    } else {
+        goScreen('s-admin');
+    }
+}
 
-        // ========== TABS ==========
-        function showPassengerTab(tab) {
-            document.querySelectorAll('#screen-passenger .tab').forEach(t => t.classList.remove('active'));
-            event.target.closest('.tab').classList.add('active');
-            
-            if (tab === 'history') {
-                alert('Histórico:\n\n' + (state.rideHistory.length ? state.rideHistory.map(r => r.from + ' → ' + r.to + ': ' + formatPrice(r.price)).join('\n') : 'Nenhuma corrida ainda'));
-            } else if (tab === 'profile') {
-                showProfile();
-            }
-        }
+function doLogout() {
+    if (confirm('Sair da conta?')) {
+        S.user = null;
+        goScreen('s-login');
+    }
+}
 
-        function showDriverTab(tab) {
-            document.querySelectorAll('#screen-driver .tab').forEach(t => t.classList.remove('active'));
-            event.target.closest('.tab').classList.add('active');
-            
-            if (tab === 'earnings') {
-                alert('💰 Ganhos:\n\nHoje: ' + formatPrice(state.driverEarnings) + '\nCorridas: ' + state.driverRides + '\n\n(Todos os ganhos são 100% seus!)');
-            } else if (tab === 'profile') {
-                showDriverProfile();
-            }
-        }
+// ==================== MAP ====================
+function initMap() {
+    S.mapP = L.map('map-p', { zoomControl: false }).setView([S.passengerLoc.lat, S.passengerLoc.lng], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OSM' }).addTo(S.mapP);
+    
+    // User marker
+    L.circleMarker([S.passengerLoc.lat, S.passengerLoc.lng], { radius: 10, color: '#fff', fillColor: '#2196F3', fillOpacity: 1, weight: 3 }).addTo(S.mapP);
+    
+    // Driver markers
+    DRIVERS_DATA.forEach(d => {
+        L.circleMarker([d.lat, d.lng], { radius: 8, color: '#fff', fillColor: '#00B140', fillOpacity: 1, weight: 2 })
+            .addTo(S.mapP).bindPopup(`<b>${d.name}</b><br>${d.car}<br>⭐ ${d.rating}`);
+    });
+    
+    // Popular locations
+    renderPopular();
+}
 
-        function showProfile() {
-            alert('👤 Perfil:\n\nNome: ' + (state.user?.name || 'N/A') + '\nTelefone: ' + (state.user?.phone || 'N/A') + '\nTipo: ' + (state.role === 'passenger' ? 'Passageiro' : 'Motorista'));
-        }
+function renderPopular() {
+    const popular = ['Aeroporto 4 de Fevereiro', 'Kinaxixi', 'Ingombota', 'Kilamba'];
+    document.getElementById('p-popular').innerHTML = popular.map(name => `
+        <div class="location-item" onclick="selectLocation('${name}')">
+            <div class="loc-icon green">${LOC[name].icon}</div>
+            <div class="loc-info"><div class="loc-name">${name}</div></div>
+            <div class="loc-arrow">›</div>
+        </div>
+    `).join('');
+}
 
-        function showDriverProfile() {
-            alert('👤 Perfil Motorista:\n\nNome: ' + (state.user?.name || 'N/A') + '\nTelefone: ' + (state.user?.phone || 'N/A') + '\nAvaliação: ⭐ 4.8\n\nGanhos totais: ' + formatPrice(state.driverEarnings));
-        }
+// ==================== PASSENGER FLOWS ====================
+function showSearch() {
+    document.getElementById('p-default').style.display = 'none';
+    document.getElementById('p-search').style.display = 'block';
+    renderLocations(Object.keys(LOC));
+    document.getElementById('p-search-input').value = '';
+    document.getElementById('p-search-input').focus();
+}
 
-        // ========== UTILS ==========
-        function haversine(c1, c2) {
-            const R = 6371;
-            const dLat = (c2.lat - c1.lat) * Math.PI / 180;
-            const dLng = (c2.lng - c1.lng) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(c1.lat * Math.PI / 180) * Math.cos(c2.lat * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
+function hideSearch() {
+    document.getElementById('p-search').style.display = 'none';
+    document.getElementById('p-default').style.display = 'block';
+}
 
-        function formatPrice(p) {
-            return new Intl.NumberFormat('pt-AO').format(Math.round(p)) + ' Kz';
-        }
+function filterLocations() {
+    const q = document.getElementById('p-search-input').value.toLowerCase();
+    renderLocations(Object.keys(LOC).filter(n => n.toLowerCase().includes(q)));
+}
 
-        // Init
-        selectRole('passenger');
-    </script>
+function renderLocations(list) {
+    document.getElementById('p-locations').innerHTML = list.map(name => `
+        <div class="location-item" onclick="selectLocation('${name}')">
+            <div class="loc-icon green">${LOC[name].icon}</div>
+            <div class="loc-info"><div class="loc-name">${name}</div></div>
+            <div class="loc-arrow">›</div>
+        </div>
+    `).join('') || '<div style="text-align:center;padding:20px;color:var(--light)">Nenhum local encontrado</div>';
+}
+
+function selectLocation(name) {
+    S.dropoff = LOC[name];
+    S.dropoffName = name;
+    S.pickup = { ...S.passengerLoc };
+    
+    const dist = haversine(S.pickup, S.dropoff);
+    const dur = Math.ceil(dist * 2);
+    const price = Math.max(500 + dist * 200 + dur * 50, 300);
+    S.price = price;
+    
+    document.getElementById('p-from').textContent = 'Localização atual';
+    document.getElementById('p-to').textContent = name;
+    document.getElementById('p-price').innerHTML = fmt(price) + ' <small>Kz</small>';
+    document.getElementById('p-distance').textContent = dist.toFixed(1) + ' km · ' + dur + ' min';
+    document.getElementById('p-breakdown').textContent = `500 + (${dist.toFixed(1)} × 200) + (${dur} × 50)`;
+    
+    document.getElementById('p-search').style.display = 'none';
+    document.getElementById('p-confirm').style.display = 'block';
+}
+
+function hideConfirm() {
+    document.getElementById('p-confirm').style.display = 'none';
+    document.getElementById('p-default').style.display = 'block';
+}
+
+function selectPayment(el, method) {
+    document.querySelectorAll('.payment-opt').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    S.payment = method;
+}
+
+function applyPromo() {
+    const code = document.getElementById('promo-input').value.toUpperCase();
+    const msg = document.getElementById('promo-message');
+    if (code === 'UBER20') {
+        S.promoApplied = true;
+        S.price = Math.floor(S.price * 0.8);
+        document.getElementById('p-price').innerHTML = fmt(S.price) + ' <small>Kz</small>';
+        msg.style.display = 'block';
+        msg.style.color = 'var(--primary)';
+        msg.textContent = '✓ Código aplicado! 20% de desconto';
+    } else if (code) {
+        msg.style.display = 'block';
+        msg.style.color = 'var(--error)';
+        msg.textContent = '✗ Código inválido';
+    }
+}
+
+function doRequestRide() {
+    showPSection('p-waiting');
+    setTimeout(() => {
+        const driver = DRIVERS_DATA[Math.floor(Math.random() * DRIVERS_DATA.length)];
+        S.currentDriver = driver;
+        document.getElementById('p-d-avatar').textContent = driver.name[0];
+        document.getElementById('p-d-name').textContent = driver.name;
+        document.getElementById('p-d-car').textContent = driver.car + ' · ' + driver.plate;
+        document.getElementById('p-d-rating').textContent = driver.rating;
+        const dist = (Math.random() * 3 + 0.5).toFixed(1);
+        document.getElementById('p-d-dist').textContent = dist + ' km';
+        document.getElementById('p-eta').textContent = Math.ceil(dist * 2) + ' min';
+        showPSection('p-found');
+    }, 3500);
+}
+
+function cancelWaiting() { showPSection('p-default'); }
+function cancelRidePassenger() {
+    if (confirm('Cancelar corrida?')) { showPSection('p-default'); S.currentDriver = null; }
+}
+
+function completePassengerRide() {
+    document.getElementById('p-done-price').innerHTML = fmt(S.price) + ' <small>Kz</small>';
+    S.history.unshift({ from: 'Localização atual', to: S.dropoffName, price: S.price, driver: S.currentDriver?.name, time: new Date().toLocaleTimeString('pt-AO'), payment: S.payment });
+    showPSection('p-done');
+}
+
+function resetPassenger() { showPSection('p-default'); S.price = 0; S.currentDriver = null; }
+
+function showPSection(id) {
+    ['p-default','p-search','p-confirm','p-waiting','p-found','p-riding','p-done'].forEach(s => {
+        document.getElementById(s).style.display = s === id ? 'block' : 'none';
+    });
+}
+
+function pTab(el, tab) {
+    document.querySelectorAll('#s-passenger .tab-item').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    if (tab === 'history') goScreen('s-history');
+}
+
+// ==================== DRIVER FLOWS ====================
+function toggleDriverOnline() {
+    S.driverOnline = !S.driverOnline;
+    document.getElementById('d-toggle').classList.toggle('on', S.driverOnline);
+    document.getElementById('d-status-text').textContent = S.driverOnline ? 'Online' : 'Offline';
+    document.getElementById('d-status-text').style.color = S.driverOnline ? 'var(--primary)' : 'var(--white)';
+    document.getElementById('d-status-sub').textContent = S.driverOnline ? 'A receber pedidos...' : 'Ative para receber pedidos';
+    document.getElementById('d-waiting').style.display = S.driverOnline ? 'block' : 'none';
+    document.getElementById('d-active-ride').style.display = 'none';
+    
+    if (S.driverOnline) {
+        setTimeout(() => { if (S.driverOnline && !S.currentRide) showRidePopup(); }, 3000 + Math.random() * 3000);
+    }
+}
+
+function showRidePopup() {
+    const names = Object.keys(LOC);
+    const from = names[Math.floor(Math.random() * names.length)];
+    const to = names[Math.floor(Math.random() * names.length)];
+    const dist = haversine(LOC[from], LOC[to]);
+    const earning = Math.floor(Math.max(500 + dist * 200 + Math.ceil(dist * 2) * 50, 300) * 0.85);
+    
+    S.pendingRequest = { from, to, earning };
+    document.getElementById('popup-from').textContent = from;
+    document.getElementById('popup-to').textContent = to;
+    document.getElementById('popup-earning').textContent = fmt(earning) + ' Kz';
+    document.getElementById('ride-popup').classList.add('show');
+    
+    let time = 15;
+    document.getElementById('popup-timer').textContent = time;
+    S.popupInterval = setInterval(() => {
+        time--;
+        document.getElementById('popup-timer').textContent = time;
+        if (time <= 0) { clearInterval(S.popupInterval); declinePopup(); }
+    }, 1000);
+}
+
+function acceptPopup() {
+    clearInterval(S.popupInterval);
+    document.getElementById('ride-popup').classList.remove('show');
+    S.currentRide = S.pendingRequest;
+    S.pendingRequest = null;
+    
+    const driver = { name: S.user?.name || 'Passageiro', car: 'Passageiro', rating: 5 };
+    document.getElementById('d-ride-card').innerHTML = `
+        <div class="driver-avatar blue">${driver.name[0]}</div>
+        <div class="driver-details">
+            <div class="driver-name">${driver.name}</div>
+            <div class="driver-car">${driver.car}</div>
+            <div class="driver-meta"><span>⭐ ${driver.rating}</span></div>
+        </div>
+    `;
+    document.getElementById('d-ride-to').textContent = S.currentRide.to;
+    document.getElementById('d-ride-dist').textContent = haversine(LOC[S.currentRide.from], LOC[S.currentRide.to]).toFixed(1) + ' km';
+    document.getElementById('d-ride-earning').textContent = fmt(S.currentRide.earning) + ' Kz';
+    
+    document.getElementById('d-waiting').style.display = 'none';
+    document.getElementById('d-active-ride').style.display = 'block';
+}
+
+function declinePopup() {
+    clearInterval(S.popupInterval);
+    document.getElementById('ride-popup').classList.remove('show');
+    S.pendingRequest = null;
+    if (S.driverOnline) setTimeout(() => { if (S.driverOnline && !S.currentRide) showRidePopup(); }, 4000);
+}
+
+function completeDriverRide() {
+    if (!S.currentRide) return;
+    S.driverEarnings += S.currentRide.earning;
+    S.driverRides++;
+    S.history.unshift({ from: S.currentRide.from, to: S.currentRide.to, price: S.currentRide.earning, driver: 'Você', time: new Date().toLocaleTimeString('pt-AO'), payment: 'cash' });
+    document.getElementById('d-earnings').textContent = fmt(S.driverEarnings);
+    document.getElementById('d-rides').textContent = S.driverRides;
+    S.currentRide = null;
+    document.getElementById('d-active-ride').style.display = 'none';
+    document.getElementById('d-waiting').style.display = S.driverOnline ? 'block' : 'none';
+    alert('Viagem concluída!');
+    if (S.driverOnline) setTimeout(() => { if (S.driverOnline && !S.currentRide) showRidePopup(); }, 3000);
+}
+
+function cancelDriverRide() {
+    if (confirm('Cancelar corrida?')) {
+        S.currentRide = null;
+        document.getElementById('d-active-ride').style.display = 'none';
+        document.getElementById('d-waiting').style.display = S.driverOnline ? 'block' : 'none';
+    }
+}
+
+function dTab(el, tab) {
+    document.querySelectorAll('#s-driver .tab-item').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    if (tab === 'earnings') goScreen('s-earnings');
+}
+
+// ==================== ADMIN DASHBOARD ====================
+function initAdminDashboard() {
+    // Generate chart
+    const chart = document.getElementById('admin-chart');
+    const labels = document.getElementById('admin-chart-labels');
+    const hours = ['6h', '8h', '10h', '12h', '14h', '16h', '18h', '20h'];
+    const values = [12, 25, 45, 68, 82, 95, 78, 45];
+    
+    chart.innerHTML = values.map(v => `<div class="chart-bar-item" style="height:${v}%"></div>`).join('');
+    labels.innerHTML = hours.map(h => `<span>${h}</span>`).join('');
+    
+    // Generate active rides
+    const activeRides = document.getElementById('admin-active-rides');
+    activeRides.innerHTML = ADMIN_RIDES.filter(r => r.status === 'active').map(r => `
+        <div class="ride-list-item">
+            <div class="ride-list-header">
+                <span style="font-weight:600">${r.passenger}</span>
+                <span class="badge badge-green">Ativa</span>
+            </div>
+            <div class="ride-list-route">${r.from} → ${r.to}</div>
+            <div class="ride-list-meta">
+                <span>🚗 ${r.driver}</span>
+                <span>💰 ${fmt(r.price)} Kz</span>
+                <span>⏰ ${r.time}</span>
+            </div>
+        </div>
+    `).join('');
+    
+    // Generate driver list
+    const driverList = document.getElementById('admin-driver-list');
+    driverList.innerHTML = DRIVERS_DATA.map(d => `
+        <div class="driver-list-item">
+            <div class="driver-status-dot ${d.status}"></div>
+            <div style="flex:1">
+                <div style="font-weight:500">${d.name}</div>
+                <div style="font-size:12px;color:var(--light)">${d.car} · ${d.plate}</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:12px;color:var(--light)">⭐ ${d.rating}</div>
+                <div class="badge ${d.status === 'online' ? 'badge-green' : d.status === 'busy' ? 'badge-yellow' : 'badge-gray'}" style="font-size:10px">${d.status === 'online' ? 'Online' : d.status === 'busy' ? 'Ocupado' : 'Offline'}</div>
+            </div>
+        </div>
+    `).join('');
+    
+    // Update stats
+    document.getElementById('admin-active-count').textContent = ADMIN_RIDES.filter(r => r.status === 'active').length;
+}
+
+function adminTab(el, tab) {
+    document.querySelectorAll('#s-admin .tab-item').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    if (tab === 'settings') goScreen('s-admin-settings');
+}
+
+// ==================== HISTORY ====================
+function renderHistory() {
+    const el = document.getElementById('history-list');
+    if (!S.history.length) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Sem corridas ainda</div><div class="empty-desc">As suas corridas aparecerão aqui</div></div>';
+        return;
+    }
+    el.innerHTML = S.history.map(h => `
+        <div class="history-item">
+            <div class="history-top">
+                <span style="font-size:13px;color:var(--light)">${h.time}</span>
+                <span class="badge ${h.driver === 'Você' ? 'badge-blue' : 'badge-green'}">${h.driver === 'Você' ? 'Motorista' : 'Passageiro'}</span>
+            </div>
+            <div class="history-route">
+                <div class="history-point"><div class="dot" style="background:var(--primary)"></div>${h.from}</div>
+                <div class="history-line"></div>
+                <div class="history-point"><div class="dot" style="background:var(--error)"></div>${h.to}</div>
+            </div>
+            <div class="history-bottom">
+                <div class="history-price">${fmt(h.price)} Kz</div>
+                <div class="history-meta">${h.payment === 'cash' ? '💵 Dinheiro' : '📱 Multicaixa'}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ==================== EARNINGS ====================
+function renderEarnings() {
+    document.getElementById('earn-total').textContent = fmt(S.driverEarnings) + ' Kz';
+    document.getElementById('earn-today').textContent = fmt(S.driverEarnings);
+    document.getElementById('earn-week').textContent = fmt(S.driverEarnings);
+    document.getElementById('earn-rides').textContent = S.driverRides;
+}
+
+// ==================== SAFETY ====================
+function shareRide() {
+    const text = `Estou numa viagem Uber Angola de ${S.dropoffName}. Preço: ${fmt(S.price)} Kz`;
+    if (navigator.share) {
+        navigator.share({ title: 'Uber Angola', text: text });
+    } else {
+        alert('Partilhar viagem:\n\n' + text);
+    }
+}
+
+function showEmergency() {
+    document.getElementById('emergency-modal').classList.add('show');
+}
+
+function closeEmergency() {
+    document.getElementById('emergency-modal').classList.remove('show');
+}
+
+function callEmergency(type) {
+    const numbers = { '112': '112', 'police': '113', 'ambulance': '115' };
+    alert(`A ligar para ${type}...\n\nNúmero: ${numbers[type] || '112'}\n\nLocalização partilhada automaticamente`);
+    closeEmergency();
+}
+
+// ==================== RATING ====================
+function rateDriver(rating) {
+    S.rating = rating;
+    document.querySelectorAll('.rating-star').forEach((star, i) => {
+        star.classList.toggle('active', i < rating);
+    });
+}
+
+// ==================== NOTIFICATIONS ====================
+function toggleNotifications() {
+    document.getElementById('notification-panel').classList.toggle('open');
+}
+
+// ==================== HELP CENTER ====================
+function showHelpCenter() {
+    document.getElementById('help-modal').classList.add('show');
+}
+
+function closeHelpCenter() {
+    document.getElementById('help-modal').classList.remove('show');
+}
+
+function toggleHelpItem(el) {
+    el.parentElement.classList.toggle('open');
+}
+
+// ==================== EDIT PROFILE ====================
+function showEditProfile() {
+    alert('Editar perfil:\n\nNome: ' + S.name + '\nTelefone: +244 ' + S.phone);
+}
+
+// ==================== UTILS ====================
+function haversine(a, b) {
+    const R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
+    const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+function fmt(n) { return new Intl.NumberFormat('pt-AO').format(Math.round(n)); }
+
+function showNotifications() { alert('🔔 Notificações:\n\n• Bem-vindo ao Uber Angola!\n• Promoção: Primeira corrida com desconto\n• Novos motoristas na sua zona'); }
+
+// Init
+selectRole('passenger');
+</script>
 </body>
 </html>
