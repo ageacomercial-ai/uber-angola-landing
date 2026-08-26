@@ -1,4 +1,8 @@
 {
   "version": 2,
-  "name": "uber-angola"
+  "public": true,
+  "outputDirectory": ".",
+  "framework": null,
+  "installCommand": "echo done",
+  "buildCommand": "echo done"
 }
